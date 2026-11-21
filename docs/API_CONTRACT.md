@@ -69,13 +69,26 @@ Ne plus ajouter d'appel direct à `window.electronAPI` pour une opération du co
 Lots suivants : migration de l'écran par domaine (2), `WsClient` + adaptateur WebSocket (3),
 `PlatformServices` (4), pages distantes (5).
 
-## Journal des événements par épreuve (#1980, étape 1)
+## Journal des événements par épreuve (#1980)
 
-Table `competition_events` (migration 45) : `competition_id`, `revision` (croissante par
-épreuve), `type`, `payload` (JSON, identifiants seulement), `author`, `source`
-(`screen`, `mcp`, `tablet`, `cyrano`, `engine`), `at`. Ajout seul
+Table `competition_events` (migration 46, format [ADR-0007](adr/0007-format-evenement.md)) :
+`event_id` (UUID, clé, stable entre postes), `command_id` (commun aux événements d'une commande),
+`competition_id`, `revision` (ordre local, croissant par épreuve, unique avec l'épreuve), `type`
+(fait au passé), `schema_version`, `payload` (JSON, identifiants seulement), `author`, `source`
+(`screen`, `mcp`, `tablet`, `cyrano`, `opp2`, `engine`), `at`. Ajout seul
 (`src/database/repos/eventLogRepo.ts`). Les tables actuelles et `session_state` restent la
 lecture : le journal s'écrit **en plus**, dans la même transaction (`src/main/engine/commands/eventLog.ts`).
+
+Types et charges : **`src/shared/api/events.ts`** (union zod `JournalEventBodySchema`, constantes
+`JOURNAL_EVENT`). Le moteur n'écrit que ces types ; `getCompetitionEvents` / `getMatchHistory` rendent
+des `JournalEvent` typés (`eventId`, `commandId`, `revision`, `schemaVersion`, `author`, `source`, `at`).
+Faire évoluer une charge : nouvelle `schemaVersion` + nouveau membre de l'union ; un événement stocké
+ne se réécrit jamais.
+
+**Idempotence** : toute commande accepte `commandId` (choisi par l'appelant, UUID). Rejouée avec le
+même identifiant (renvoi après une coupure), elle n'écrit rien et est refusée par
+`command_already_applied`, `data: { revision, commandId }` — à traiter comme un succès. Sans
+`commandId`, le moteur en génère un par commande.
 
 | Commande | Événements |
 |---|---|
@@ -83,11 +96,16 @@ lecture : le journal s'écrit **en plus**, dans la même transaction (`src/main/
 | `recordScore` (poule) | `ScoreRecorded`, puis `PoolCompleted` si la poule se termine |
 | `recordScore` (tableau) | `ScoreRecorded`, `TableauMatchDecided`, `TableauCompleted` en fin de tableau |
 
-- Source : `DomainContext.actor` (IPC : `screen` ; MCP : `mcp`, auteur `agent` ; défaut `engine`).
+- Source : `CommandContext.actor` (IPC : `screen` ; MCP : `mcp`, auteur `agent` ; défaut `engine`).
 - Une commande qui écrit rend `revision` et diffuse `{ type: 'journal:appended', competitionId, revision }`
   aux abonnés `onCompetitionEvents`. `dryRun` n'écrit rien.
 - `expectedRevision` (optionnel) : révision périmée → `ApiError` `revision_conflict`,
   `data: { revision, missing }` (200 événements manquants au plus ; au-delà, `getCompetitionEvents`).
+  Contrôle, écritures et ajout au journal forment **une seule transaction** (`runCommand`,
+  [ADR-0006](adr/0006-expected-revision.md)) : aucune écriture ne s'intercale, un refus ou une erreur
+  annule tout. Une commande est donc **synchrone** (un `await` est refusé). Portée : seules les
+  commandes du contrat sont détectées ; les écritures de l'écran et des tablettes qui n'y passent pas
+  encore ne changent pas la révision (#1980, « un fait, un chemin »).
 - Resynchronisation : `getCompetitionEvents { competitionId, since }`. Audit d'un match :
   `getMatchHistory { competitionId, matchId }`.
 - Purge RGPD et archive `.bpm` : suivent `competition_id` comme les autres tables.
