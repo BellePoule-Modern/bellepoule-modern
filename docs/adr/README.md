@@ -56,6 +56,7 @@ Origine : #1979 (lot 1), épique #1978. Format et processus : [ADR-0001](0001-pr
 | [0042](0042-moteur-formules-multi-tours.md)         | Le moteur tire les tours suivants et le tableau après plusieurs tours ; formules à plusieurs tours ouvertes au MCP                                                                        | Acceptée (amendée)  |
 | [0043](0043-rapieres-briques-generiques.md)         | Tournoi des rapières en briques génériques (vagues, têtes de poule, binômes, classements filtrés), fin du mode spécial ; migration 54                                                     | Acceptée (amendée)  |
 | [0044](0044-equipes-formule-v2.md)                  | Les épreuves par équipes (relais FIE) suivent la formule v2 : règle de rencontre par phase, poules d'équipes, rang d'entrée (migration 55)                                                | Acceptée (amendée)  |
+| [0045](0045-tirage-du-tableau.md)                   | Le tableau se tire selon un mode réglé dans la formule (strict, par paires, par groupes, intégral), graine enregistrée et rejouable, PV de tirage                                         | Proposée            |
 
 **Acceptée** : tranchée par le mainteneur le 2026-11-20 (revue de #2020, #2022 et #2023, commentaire sur #1979 ; arbitrages de la PR #2029).
 **Proposée** : acceptée au merge de la PR qui l'introduit, ou amendée en revue.
