@@ -14,7 +14,13 @@ import {
   type FormulaProgress,
   type FormulaRemark,
 } from './formulaRemarks';
-import type { FormulaPhaseV2, FormulaV2, SplitPhase } from './formulaV2';
+import {
+  isCoupledSplit,
+  type FormulaPhaseV2,
+  type FormulaV2,
+  type SplitPhase,
+  type TableauPhase,
+} from './formulaV2';
 
 const NAMES: Record<FormulaPhaseKind, string> = {
   pool: 'tour de poules',
@@ -246,9 +252,16 @@ function lockedQualificationIssues(
 }
 
 /**
- * Mode du tableau tiré (docs/adr/0043, F4b) : petite finale et « toutes les places » sont
- * modifiables tant que le tableau n'est pas tiré ; ensuite, ceux de la formule enregistrée.
+ * Mode du tableau tiré (docs/adr/0043, F4b ; ADR-0041 S6 amendée le 2026-11-28) : petite
+ * finale, « toutes les places » et mode de tirage (docs/adr/0045) sont modifiables tant que le
+ * tableau n'est pas tiré ; ensuite, ceux de la formule enregistrée.
  */
+const tableauAt = (p: FormulaPhaseV2 | undefined): TableauPhase | undefined => {
+  if (p?.kind === 'tableau') return p;
+  const kept = p?.kind === 'split' && isCoupledSplit(p) ? p.branches[0]?.phases[0] : undefined;
+  return kept?.kind === 'tableau' ? kept : undefined;
+};
+
 function lockedTableauModeIssues(
   f: FormulaV2,
   progress: FormulaProgress,
@@ -257,15 +270,21 @@ function lockedTableauModeIssues(
   const keys = phaseKeys(f.phases);
   const out: FormulaRemark[] = [];
   for (let i = 0; i < progress.phases.length; i++) {
-    const was = stored.phases[i];
-    const now = f.phases[i];
-    if (was?.kind !== 'tableau' || now?.kind !== 'tableau') continue;
-    if (!!was.thirdPlace === !!now.thirdPlace && !!was.allPlaces === !!now.allPlaces) continue;
+    // Compétition couplée : tableau des branches restées (ADR-0039 E3, ADR-0045)
+    const was = tableauAt(stored.phases[i]);
+    const now = tableauAt(f.phases[i]);
+    if (!was || !now) continue;
+    if (
+      !!was.thirdPlace === !!now.thirdPlace &&
+      !!was.allPlaces === !!now.allPlaces &&
+      (was.draw ?? 'strict') === (now.draw ?? 'strict')
+    )
+      continue;
     out.push(
       remark(
         'started_tableau_mode_changed',
         keys[i],
-        'tableau déjà tiré : la petite finale et « toutes les places » ne changent plus'
+        'tableau déjà tiré : la petite finale, « toutes les places » et le mode de tirage ne changent plus'
       )
     );
   }

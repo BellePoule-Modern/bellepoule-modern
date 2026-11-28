@@ -7,7 +7,7 @@
  * Licensed under GPL-3.0
  */
 
-import type { FormulaPhaseV2, FormulaV2 } from './formulaV2';
+import { isCoupledSplit, type FormulaPhaseV2, type FormulaV2 } from './formulaV2';
 
 /**
  * Remarque bloquante. `code` : snake_case stable ; `phase` : clé de la frise (`pool-0`,
@@ -90,7 +90,8 @@ const count = (v: unknown): number => (Array.isArray(v) ? v.length : 0);
 /**
  * Phases commencées de `stored`, la formule enregistrée à laquelle correspond l'état : tours de
  * poules lancés (clos ou en cours), Tour Quest ouvert, tableau tiré ou arrêté et clos, scission
- * faite. Une phase commencée entraîne celles qui la précèdent. Rend les natures dans l'ordre.
+ * faite (compétition couplée : un tableau de groupe tiré). Une phase commencée entraîne celles
+ * qui la précèdent. Rend les natures dans l'ordre.
  */
 export function formulaProgress(stored: FormulaV2, facts: ProgressFacts): FormulaProgress {
   // Tour courant commencé : poules lancées (`poolsLaunched`, état de session) ; un tirage non
@@ -112,6 +113,11 @@ export function formulaProgress(stored: FormulaV2, facts: ProgressFacts): Formul
     } else if (p.kind === 'quest') {
       if (!facts.questStarted && tableaux <= 0) break;
     } else if (p.kind === 'tableau') {
+      if (tableaux <= 0) break;
+      tableaux--;
+    } else if (isCoupledSplit(p)) {
+      // Compétition couplée : ses branches restées sont le tableau joué dans l'épreuve (tableaux
+      // séparés, ADR-0039 E3) ; commencée dès qu'un tableau de groupe est tiré (ADR-0045, S6)
       if (tableaux <= 0) break;
       tableaux--;
     } else if (count(facts.splitHistory) === 0) break;
