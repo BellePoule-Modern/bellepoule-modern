@@ -17,6 +17,15 @@ const SpecialStatus = z.enum(['abandon', 'forfait', 'exclusion']);
 const TeamCardType = z.enum(['white', 'yellow', 'red', 'black']);
 /** Carton individuel (CardType) */
 const RelayCardType = z.enum(['WHITE', 'YELLOW', 'RED', 'BLACK']);
+/**
+ * Tirage d'un tableau (docs/adr/0045) : mode, graine, identifiants dans l'ordre d'entrée tiré.
+ * Absent : tableau tiré avant (placement strict, ordre du placement)
+ */
+export const TableauDrawPayload = z.object({
+  mode: z.enum(['strict', 'pairs', 'groups', 'random']),
+  seed: z.number().int().min(0).max(0xffffffff),
+  order: z.array(Id),
+});
 
 /** Types d'événements écrits par le moteur */
 export const JOURNAL_EVENT = {
@@ -148,7 +157,8 @@ export const JournalEventBodySchema = z.discriminatedUnion('type', [
       eliminatedIds: z.array(Id),
     })
   ),
-  // Tableau généré : placement complet (barrages, exemptions, rangs de sortie de poules)
+  // Tableau généré : placement complet (barrages, exemptions, rangs de sortie de poules) ;
+  // tirage (mode, graine, ordre d'entrée tiré, docs/adr/0045)
   member(
     JOURNAL_EVENT.tableauGenerated,
     z.object({
@@ -171,6 +181,7 @@ export const JournalEventBodySchema = z.discriminatedUnion('type', [
           seedB: z.number().nullable(),
         })
       ),
+      draw: TableauDrawPayload.optional(),
     })
   ),
   // Tour en vagues : vague lancée (0 = aucune), vagues arrêtées ou reprises (docs/adr/0043)
@@ -242,7 +253,7 @@ export const JournalEventBodySchema = z.discriminatedUnion('type', [
     })
   ),
   // Tableau d'équipes (lot E2) : placement complet du premier tour, exemptés compris ;
-  // tour = nombre de rencontres du tour (taille / 2 au premier, 1 en finale)
+  // tour = nombre de rencontres du tour (taille / 2 au premier, 1 en finale) ; tirage (ADR-0045)
   member(
     JOURNAL_EVENT.teamTableauGenerated,
     z.object({
@@ -256,6 +267,7 @@ export const JournalEventBodySchema = z.discriminatedUnion('type', [
           isBye: z.boolean(),
         })
       ),
+      draw: TableauDrawPayload.optional(),
     })
   ),
   // Relais : le fait est le score du relais, pas le cumul (calculé)

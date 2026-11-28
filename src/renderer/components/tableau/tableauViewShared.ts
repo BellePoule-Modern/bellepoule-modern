@@ -55,11 +55,19 @@ export interface TableauViewProps {
     scoreB: number;
     winner?: 'A' | 'B';
   }) => Promise<RecordScoreOutcome>;
-  /** Tableau généré écrit par le moteur (generateTableau, docs/adr/0017) */
+  /**
+   * Tableau généré écrit par le moteur (generateTableau, docs/adr/0017) ; `matches` null : tirage
+   * par le moteur, sans placement de l'écran (docs/adr/0045)
+   */
   onGenerateTableau?: (
-    matches: TableauMatch[],
+    matches: TableauMatch[] | null,
     thirdPlaceMatch: boolean
   ) => Promise<RecordScoreOutcome>;
+  /**
+   * Le moteur tire le tableau (mode de tirage autre que strict, ou tableau au rang d'entrée,
+   * docs/adr/0045) : l'écran ne place ni ne régénère, il relit l'état
+   */
+  engineDraw?: boolean;
   /** Score annulé par clearScore (docs/adr/0017) */
   onClearScore?: (matchId: string) => Promise<RecordScoreOutcome>;
   /** Retrait d'un tireur par withdrawFencer (docs/adr/0016) : même issue que onRecordScore */

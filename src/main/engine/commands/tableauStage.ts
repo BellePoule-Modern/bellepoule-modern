@@ -89,7 +89,13 @@ export function closeTableauStage(
     outcome.qualified.forEach((f, i) => {
       if (byId.get(f.id)?.ranking !== i + 1) ctx.db.updateFencer(f.id, { ranking: i + 1 });
     });
-    const closed = { stageHistory, tableauMatches: [], consolationBrackets: [], finalResults: [] };
+    const closed = {
+      stageHistory,
+      tableauMatches: [],
+      consolationBrackets: [],
+      finalResults: [],
+      tableauDraw: undefined,
+    };
     writeSession(
       ctx,
       comp.id,

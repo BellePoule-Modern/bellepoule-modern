@@ -25,6 +25,10 @@ import {
   type GroupTableau,
 } from '../../../shared/domain/ranking/splitGroups';
 import type { PoolRanking } from '../../../shared/types';
+import {
+  tableauDrawStateOf,
+  type TableauDrawState,
+} from '../../../shared/domain/tableau/tableauDraw';
 
 export interface TableauSlot {
   /** Groupe du tableau ; null : tableau unique */
@@ -34,6 +38,8 @@ export interface TableauSlot {
   matches: TableauMatch[];
   brackets: ConsolationBracket[];
   finalResults: FinalResult[];
+  /** Tirage du tableau (docs/adr/0045) ; null : pas de tirage enregistré */
+  draw: TableauDrawState | null;
 }
 
 const list = <T>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
@@ -47,6 +53,7 @@ const rootSlot = (session: Record<string, unknown>, group: string | null): Table
   matches: list<TableauMatch>(session.tableauMatches),
   brackets: list<ConsolationBracket>(session.consolationBrackets),
   finalResults: list<FinalResult>(session.finalResults),
+  draw: tableauDrawStateOf(session.tableauDraw),
 });
 
 /** Tableaux de l'épreuve : le tableau unique, ou ceux des groupes (tableau repris compris) */
@@ -60,6 +67,7 @@ export function tableauSlots(comp: Competition, session: Record<string, unknown>
     matches: t.tableauMatches,
     brackets: t.consolationBrackets,
     finalResults: t.finalResults,
+    draw: t.tableauDraw ?? null,
   }));
   const root = rootSlot(session, null);
   if (root.matches.length > 0) {
@@ -79,7 +87,7 @@ export function slotOfGroup(
   if (found) return found;
   return group === null
     ? rootSlot({}, null)
-    : { group, atRoot: false, matches: [], brackets: [], finalResults: [] };
+    : { group, atRoot: false, matches: [], brackets: [], finalResults: [], draw: null };
 }
 
 const hasMatch = (s: TableauSlot, matchId: string) =>
@@ -135,27 +143,37 @@ export function cloneSlot(slot: TableauSlot): TableauSlot {
 export function slotPatch(
   session: Record<string, unknown>,
   slot: Pick<TableauSlot, 'group' | 'atRoot'>,
-  next: Partial<GroupTableau>
+  /** `tableauDraw: null` : tirage effacé avec le tableau (docs/adr/0045) */
+  next: Partial<Omit<GroupTableau, 'tableauDraw'>> & { tableauDraw?: TableauDrawState | null }
 ): Record<string, unknown> {
   const root: Record<string, unknown> = {};
   if (next.tableauMatches) root.tableauMatches = next.tableauMatches;
   if (next.consolationBrackets) root.consolationBrackets = next.consolationBrackets;
   if (next.finalResults) root.finalResults = next.finalResults;
+  if (next.tableauDraw !== undefined) root.tableauDraw = next.tableauDraw ?? undefined;
   if (slot.group === null) return root;
   const groups = sessionGroupTableaux(session);
+  const withDraw = (t: GroupTableau): GroupTableau => {
+    const { tableauDraw: _drop, ...rest } = t;
+    if (next.tableauDraw === undefined) return t;
+    return next.tableauDraw ? { ...rest, tableauDraw: next.tableauDraw } : rest;
+  };
+  const { tableauDraw: _draw, ...tables } = next;
   if (slot.atRoot) {
     // Tableau repris (lot A2) : déplacé dans son groupe, identifiants inchangés ; racine vidée
     const legacy = rootSlot(session, slot.group);
-    const moved: GroupTableau = {
+    const moved: GroupTableau = withDraw({
       tableauMatches: legacy.matches,
       consolationBrackets: legacy.brackets,
       finalResults: legacy.finalResults,
-      ...next,
-    };
+      ...(legacy.draw ? { tableauDraw: legacy.draw } : {}),
+      ...tables,
+    });
     return {
       tableauMatches: [],
       consolationBrackets: [],
       finalResults: [],
+      tableauDraw: undefined,
       groupTableaux: { ...groups, [slot.group]: moved },
     };
   }
@@ -164,7 +182,7 @@ export function slotPatch(
     consolationBrackets: [],
     finalResults: [],
   };
-  return { groupTableaux: { ...groups, [slot.group]: { ...current, ...next } } };
+  return { groupTableaux: { ...groups, [slot.group]: withDraw({ ...current, ...tables }) } };
 }
 
 /**
@@ -183,6 +201,7 @@ export function groupTableauxView(
       tableauMatches: s.matches,
       consolationBrackets: s.brackets,
       finalResults: s.finalResults,
+      ...(s.draw ? { tableauDraw: s.draw } : {}),
     };
   }
   return out;

@@ -88,7 +88,18 @@ Il ne se combine ni avec un tableau arrêté, ni avec une scission. Le déroulé
 
 Le tableau va jusqu'à la finale. Rien ne peut le suivre : le classement final vient après lui.
 
-Réglages courants : **touches** (0 = sans limite), **durée**, **match pour la 3ᵉ place**.
+Réglages courants : **touches** (0 = sans limite), **durée**, **match pour la 3ᵉ place**, **placement** ([ADR-0045](adr/0045-tirage-du-tableau.md)).
+
+**Placement** (mode de tirage), en mode normal :
+
+| Placement | Effet |
+| --- | --- |
+| **Strict** (défaut) | Au rang : tête de série 1 contre la dernière. |
+| **Par paires** | Les rangs 1-2, 3-4, 5-6… sont tirés au sort sur les deux emplacements de leur paire. |
+| **Par groupes** | Les rangs 1 et 2 sont placés ; les rangs 3-4, 5-8, 9-16… sont tirés au sort sur les emplacements de leur groupe. |
+| **Intégral** | Tous les qualifiés sont tirés au sort sur les emplacements 1 à N. |
+
+Le tirage n'attribue que des emplacements : le rang d'entrée (classement des éliminés d'un même tour) reste celui du classement ; taille, exemptions et barrages ne changent pas. Le moteur tire une graine (affichée sur l'écran du tableau avec le mode) ; la même graine redonne le même tableau. Le bouton **Imprimer le PV de tirage** édite le procès-verbal : épreuve, tableau, date et heure, mode, graine, et pour chaque qualifié son rang d'entrée, son club, son emplacement. Le placement vaut aussi pour une branche de scission et pour un tableau d'équipes. Une fois le tableau tiré, il ne change plus (S6). Sans formule enregistrée : strict.
 
 Réglage avancé : **tous les classements** (les perdants de chaque tour forment un tableau de classement). Cette case reste visible hors mode expert.
 
@@ -211,7 +222,7 @@ Ces contrôles tournent à chaque changement dans l'éditeur. Un contrôle **blo
 | **S3** | Quand la qualification fixe un nombre, il suffit à la phase suivante : au moins la taille minimale d'une poule, au moins 2 pour un tableau, plus de N pour un tableau arrêté à N. | « tour 1 : 3 qualifié(s) pour des poules de 4 tireurs au moins » |
 | **S4** | Ce nombre est compatible avec la phase suivante : il se répartit en poules de la taille voulue. Dans une scission par rang, la somme des parts reste sous l'effectif. Avec « têtes de poule », il y a au plus autant de poules que de qualifiés. | « tour 1 : 8 qualifiés ne se répartissent pas en poules de 6 à 7 tireurs » |
 | **S5** | Chaque branche d'une scission se termine par une phase qui classe : un tour de poules ou un tableau complet, jamais un tableau arrêté. | « se termine par un tableau arrêté à 8 : finir par un tour de poules ou un tableau complet » |
-| **S6** | Une phase commencée ne se retire pas, ne change pas de nature, et rien ne s'insère avant elle. La règle de qualification qui sort d'un tour de poules clos, ou qui mène à une phase commencée, ne change plus : les éliminés d'un tour clos sont fixés dès la clôture, et le classement final relit la formule, la coupe doit rester celle du tirage. Un tableau arrêté clos n'est pas concerné. | « phase déjà commencée (tableau) : elle ne se retire pas » |
+| **S6** | Une phase commencée ne se retire pas, ne change pas de nature, et rien ne s'insère avant elle. La règle de qualification qui sort d'un tour de poules clos, ou qui mène à une phase commencée, ne change plus : les éliminés d'un tour clos sont fixés dès la clôture, et le classement final relit la formule, la coupe doit rester celle du tirage. Un tableau arrêté clos n'est pas concerné. Le mode d'un tableau tiré (petite finale, « toutes les places », placement) ne change plus. | « phase déjà commencée (tableau) : elle ne se retire pas » |
 
 Le contrôle S3 d'un pourcentage dépend de l'effectif : il ne bloque pas, il alimente les avertissements de la simulation.
 
@@ -284,7 +295,7 @@ Retirez le tableau. Le classement final est celui des poules.
 Appel → Tableau (placement au classement d'entrée) → Classement final
 ```
 
-Retirez le tour de poules. À la sortie de l'Appel, le tableau est placé d'après le classement d'entrée, sans poules.
+Retirez le tour de poules. À la sortie de l'Appel, le tableau est placé d'après le classement d'entrée, sans poules. Les tireurs à rang d'entrée égal sont départagés par tirage au sort, et les non classés sont tirés au sort à la suite des classés, avec la graine du tableau, quel que soit le placement (strict compris). Le PV de tirage porte la mention « non classé · tiré au sort » ou « départagé par tirage ».
 
 ### E : tableau intercalé, poule finale
 

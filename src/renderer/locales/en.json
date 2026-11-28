@@ -4936,5 +4936,30 @@
     "print_wave_from": "From wave",
     "print_wave_to": "To wave",
     "wave_n": "Wave {{n}}"
+  },
+  "tableauDraw": {
+    "placement": "Placement",
+    "placement_hint": "Strict: seed 1 against the last. Pairs, groups or full: random draw by the engine, with a recorded seed and a printable report. Locked once the bracket is drawn.",
+    "mode": "Draw mode",
+    "seed": "Seed",
+    "mode_strict": "Strict (by rank)",
+    "mode_pairs": "By pairs (1-2, 3-4…)",
+    "mode_groups": "By groups (3-4, 5-8, 9-16…)",
+    "mode_random": "Full draw",
+    "print": "Print the draw report",
+    "pv_title": "Bracket draw report",
+    "pv_competition": "Competition",
+    "pv_date": "Date",
+    "pv_size": "Bracket of",
+    "pv_group": "Group",
+    "pv_drawn_at": "Drawn on",
+    "pv_printed_at": "Printed on",
+    "pv_rank": "Entry rank",
+    "pv_name": "Name",
+    "pv_affiliation": "Club / nation",
+    "pv_emplacement": "Slot",
+    "pv_note": "Note",
+    "note_unranked": "unranked · drawn by lot",
+    "note_tie": "tie broken by lot"
   }
 }

@@ -4936,5 +4936,30 @@
     "print_wave_from": "Erste Welle",
     "print_wave_to": "Letzte Welle",
     "wave_n": "Welle {{n}}"
+  },
+  "tableauDraw": {
+    "placement": "Setzung",
+    "placement_hint": "Streng: Setzplatz 1 gegen den letzten. Paarweise, gruppenweise oder vollständig: Auslosung durch das Programm mit gespeichertem Startwert und druckbarem Protokoll. Nach der Auslosung gesperrt.",
+    "mode": "Auslosungsmodus",
+    "seed": "Startwert",
+    "mode_strict": "Streng (nach Rang)",
+    "mode_pairs": "Paarweise (1-2, 3-4…)",
+    "mode_groups": "Gruppenweise (3-4, 5-8, 9-16…)",
+    "mode_random": "Vollständig",
+    "print": "Auslosungsprotokoll drucken",
+    "pv_title": "Protokoll der Tableau-Auslosung",
+    "pv_competition": "Wettbewerb",
+    "pv_date": "Datum",
+    "pv_size": "Tableau mit",
+    "pv_group": "Gruppe",
+    "pv_drawn_at": "Ausgelost am",
+    "pv_printed_at": "Gedruckt am",
+    "pv_rank": "Setzrang",
+    "pv_name": "Name",
+    "pv_affiliation": "Verein / Nation",
+    "pv_emplacement": "Platz",
+    "pv_note": "Vermerk",
+    "note_unranked": "ohne Rang · ausgelost",
+    "note_tie": "per Los entschieden"
   }
 }

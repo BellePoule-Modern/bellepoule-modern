@@ -3,6 +3,7 @@
  * tour suivant, 3e place) (extrait de CompetitionView, #1599)
  * Licensed under GPL-3.0
  */
+import { sortByEntryRank } from '../../shared/domain/tableau/tableauDraw';
 import { legacyRapieresRead } from '../../shared/domain/formula/rapieresFormula';
 import { useCallback } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
@@ -186,7 +187,8 @@ export function useCompetitionNavigation({
 
   const handleSkipToRanking = async () => {
     const checkedIn = getCheckedInFencers();
-    // Épreuve sans poules par le moteur (PoolsSkipped) ; l'écran relit l'état
+    // Épreuve sans poules par le moteur (PoolsSkipped) ; l'écran relit l'état. Le moteur range
+    // par rang puis nom, le tirage du tableau départage (docs/adr/0045) : `fencerIds` choisit
     const outcome = await runCommand('skipPools', { fencerIds: checkedIn.map(f => f.id) });
     if (outcome === 'refused') return;
     if (outcome === 'recorded') {
@@ -194,7 +196,8 @@ export function useCompetitionNavigation({
       setCurrentPhase('ranking');
       return;
     }
-    const initialRanking = generateInitialRanking(checkedIn);
+    // Hors moteur : même ordre que skipPools (rang d'entrée, puis nom)
+    const initialRanking = generateInitialRanking(sortByEntryRank(checkedIn));
     setOverallRanking(initialRanking);
     setSkipPoolPhase(true);
     setPools([]);

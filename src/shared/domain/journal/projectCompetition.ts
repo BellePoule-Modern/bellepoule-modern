@@ -6,6 +6,7 @@
  * Le moteur s'en sert pour vérifier ou reconstruire l'état ; les clients ne l'utilisent pas.
  * Licensed under GPL-3.0
  */
+import type { TableauDrawMode } from '../tableau/tableauDraw';
 import { JOURNAL_EVENT, type JournalEventBody } from '../../api/events';
 import { FencerStatus } from '../../types';
 import { WITHDRAWAL_STATUS } from '../fencers/withdrawal';
@@ -54,12 +55,21 @@ export interface TableauSlotFact {
   isBye: boolean;
 }
 
+/** Tirage d'un tableau au journal (docs/adr/0045) : mode, graine, ordre d'entrée tiré */
+export interface TableauDrawFact {
+  mode: TableauDrawMode;
+  seed: number;
+  order: string[];
+}
+
 export interface TableauFact {
   size: number;
   thirdPlaceMatch: boolean;
   playAllPositions: boolean;
   /** Placement du tirage (premier tour, exemptions) */
   slots: TableauSlotFact[];
+  /** Tirage (docs/adr/0045) ; absent : événement antérieur, placement strict */
+  draw?: TableauDrawFact;
 }
 
 /** Rencontre d'équipes telle que le journal l'a créée (docs/adr/0024) */
@@ -95,8 +105,11 @@ export interface TeamsFact {
   pools: Array<{ number: number; teamIds: string[] }>;
   /** Rencontres, dans l'ordre du journal */
   matches: TeamMatchFact[];
-  /** Tableau tiré (TeamTableauGenerated, lot E2) ; null : pas de tableau au journal */
-  tableau: { size: number; slots: TeamTableauSlotFact[] } | null;
+  /**
+   * Tableau tiré (TeamTableauGenerated, lot E2) ; null : pas de tableau au journal. `draw` :
+   * tirage (docs/adr/0045), absent pour un événement antérieur
+   */
+  tableau: { size: number; slots: TeamTableauSlotFact[]; draw?: TableauDrawFact } | null;
   /** Score de chaque relais terminé (le fait), par relais */
   relayResults: Record<string, { matchId: string; scoreA: number; scoreB: number }>;
   /** Rencontres terminées : vainqueur (null : égalité en poule), par rencontre */
@@ -396,6 +409,9 @@ export function projectCompetition(events: readonly ReplayEvent[]): CompetitionF
             fencerBId: m.fencerBId,
             isBye: m.isBye,
           })),
+          ...(p.draw
+            ? { draw: { mode: p.draw.mode, seed: p.draw.seed, order: [...p.draw.order] } }
+            : {}),
         };
         // Tableau d'un groupe : les autres groupes gardent leur tableau (docs/adr/0024)
         if (p.group) {

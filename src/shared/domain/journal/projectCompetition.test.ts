@@ -380,4 +380,26 @@ describe('projectCompetition : relais et tableau d’équipes (docs/adr/0024, lo
     expect(redrawn.teams?.relayResults).toEqual({});
     expect(redrawn.teams?.decisions).toEqual({});
   });
+
+  it('tirage du tableau (ADR-0045) : rejoué ; événement antérieur sans draw lisible', () => {
+    const draw = { mode: 'pairs' as const, seed: 42, order: ['a', 'b'] };
+    const withDraw = ev('TableauGenerated', {
+      ...(tableau.payload as Extract<JournalEventBody, { type: 'TableauGenerated' }>['payload']),
+      draw,
+    });
+    expect(projectCompetition([drawn(1), withDraw]).tableau?.draw).toEqual(draw);
+    const old = projectCompetition([drawn(1), tableau]).tableau;
+    expect(old?.slots).toHaveLength(1);
+    expect(old).not.toHaveProperty('draw');
+    const team = ev('TeamTableauGenerated', {
+      size: 2,
+      slots: [{ round: 1, position: 0, teamAId: 'a', teamBId: 'b', isBye: false }],
+      draw: { mode: 'random', seed: 7, order: ['b', 'a'] },
+    });
+    expect(projectCompetition([team]).teams?.tableau?.draw).toEqual({
+      mode: 'random',
+      seed: 7,
+      order: ['b', 'a'],
+    });
+  });
 });

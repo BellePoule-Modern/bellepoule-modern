@@ -33,6 +33,8 @@ export interface TeamTableauSlot {
 export interface TeamTableauPlan {
   size: number;
   slots: TeamTableauSlot[];
+  /** Tirage (docs/adr/0045) : ordre d'entrée tiré ; absent : placement strict (événement antérieur) */
+  draw?: { order: string[] };
 }
 
 /** Rencontre de tableau déjà créée : seuls sa case, son statut et son vainqueur comptent */
@@ -84,9 +86,18 @@ export function planTeamTableau(rankedTeams: TeamRow[]): TeamTableauPlan {
 
 /**
  * Têtes de série d'un tableau tiré (fait du journal) : identifiants des équipes dans l'ordre
- * d'entrée du tableau (tête de série 1 d'abord), retrouvé par la table de placement
+ * d'entrée du tableau (tête de série 1 d'abord) : ordre tiré (docs/adr/0045), sinon retrouvé
+ * par la table de placement (placement strict)
  */
 export function tableauSeedIds(tableau: TeamTableauPlan): string[] {
+  return tableau.draw?.order ? [...tableau.draw.order] : tableauPlacementIds(tableau);
+}
+
+/**
+ * Équipes d'un tableau tiré par emplacement (emplacement 1 d'abord) : placées par la table de
+ * placement, elles redonnent le premier tour tiré (écran, PDF ; docs/adr/0045)
+ */
+export function tableauPlacementIds(tableau: TeamTableauPlan): string[] {
   const chart = generateSeedingChart(tableau.size);
   const seeded: Array<{ id: string; seed: number }> = [];
   for (const s of tableau.slots) {

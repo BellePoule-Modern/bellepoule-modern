@@ -15,10 +15,12 @@
  * Licensed under GPL-3.0
  */
 
+import { TableauDrawPanel } from './tableau/TableauDrawPanel';
+import { teamDrawEntries } from '../../shared/domain/teams/teamEntryRanking';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CardReason, Competition, Fencer, Weapon } from '../../shared/types';
 import { TeamRow, TeamMatchRow, TeamBoutRow } from '../../shared/domain/teams/team.types';
-import { getTeamTargetRule } from '../../shared/domain/teams/teamCalculations';
+import { calculateTableSize, getTeamTargetRule } from '../../shared/domain/teams/teamCalculations';
 import {
   getLaserArenaBoutCap,
   isLaserArenaBoutComplete,
@@ -117,6 +119,7 @@ export const TeamManagerView: React.FC<Props> = ({ competition, fencers, view, o
     withdrawn,
     finalRanking,
     tableauSeeds,
+    tableauPlacement: placementIds,
     loading,
     run,
   } = useTeamCompetition(competitionId);
@@ -455,8 +458,10 @@ export const TeamManagerView: React.FC<Props> = ({ competition, fencers, view, o
     .filter((r): r is typeof r & { team: TeamRow } => !!r.team);
   // Placement affiché du tableau (exempts, cases en attente) : têtes de série du tableau tiré
   // par le moteur, ou, avant le tirage, classement d'entrée coupé par la qualification
-  // (teams.tableauSeeds, docs/adr/0044), jamais recalculé ici
-  const bracketSeeding = tableauSeeds.flatMap(id => teamById.get(id) ?? []);
+  // (teams.tableauSeeds, docs/adr/0044), jamais recalculé ici ; tableau tiré : équipes par
+  // emplacement (teams.tableauPlacement, docs/adr/0045)
+  const tableauPlacement = placementIds ?? tableauSeeds;
+  const bracketSeeding = tableauPlacement.flatMap(id => teamById.get(id) ?? []);
   // Classement final du moteur (docs/adr/0044) : équipes dans l'ordre, rang du moteur
   const finalRows = finalRanking.rows
     .map(r => ({ rank: r.rank, team: teamById.get(r.teamId) }))
@@ -880,6 +885,28 @@ export const TeamManagerView: React.FC<Props> = ({ competition, fencers, view, o
       )}
 
       {/* ── Vue TABLEAU ── */}
+      {view === 'tableau' && tableauMatches.length > 0 && (
+        <TableauDrawPanel
+          competitionId={competitionId}
+          competition={{
+            title: competition.title,
+            date: competition.date ? new Date(competition.date).toLocaleDateString() : null,
+            weapon: competition.weapon,
+          }}
+          group={null}
+          size={calculateTableSize(bracketSeeding.length)}
+          entrants={teamDrawEntries(teams, teamSize, id => fencerById.get(id)?.ranking ?? null).map(
+            e => ({
+              ...e,
+              name: teamById.get(e.id)?.name ?? e.id,
+              affiliation: teamById.get(e.id)?.club ?? null,
+            })
+          )}
+          emplacements={Object.fromEntries(tableauPlacement.map((id, k) => [id, k + 1]))}
+          byEntryRank={!!teamFormula && !teamPools}
+          refreshKey={tableauMatches}
+        />
+      )}
       {view === 'tableau' && (
         <TeamTableauView
           teams={teams}

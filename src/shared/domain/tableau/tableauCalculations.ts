@@ -15,6 +15,7 @@ import {
   TableauSpecialStatusType,
 } from './tableauTypes';
 import { isTableauEligible } from '../fencers/fencerStatus';
+import { drawTableau, type TableauDrawMode, type TableauDrawResult } from './tableauDraw';
 
 /** Tirage aléatoire injecté (domaine pur, docs/adr/0002) : Math.random côté écran, graine en test */
 export type RandomSource = () => number;
@@ -911,24 +912,94 @@ export const mainTableauSize = (fencerCount: number, playAllPositions: boolean):
   return result;
 };
 
+/** Tirage demandé à `planTableau` (docs/adr/0045) : mode, graine, tableau au rang d'entrée */
+export interface PlanTableauDraw {
+  mode: TableauDrawMode;
+  seed: number;
+  /**
+   * Tableau au rang d'entrée (sans poule) : rang d'entrée de chaque qualifié (null : non
+   * classé) ; ex aequo et non classés tirés au sort, rangs renumérotés dans l'ordre tiré
+   */
+  entryRankOf?: (r: PoolRanking) => number | null;
+}
+
 /**
  * Génération du tableau, règle unique écran / moteur (#1979, lot 4) : qualifiés (ni
  * retirés ni éliminés, par rang), taille, matchs (barrages, premier tour, tours suivants,
- * petite finale, byes propagés).
+ * petite finale, byes propagés). Tirage (docs/adr/0045) : les qualifiés sont permutés sur les
+ * emplacements de la grille ; le rang d'entrée (`seedA`, `seedB`) reste celui de l'ordre
+ * d'entrée. Sans tirage : placement strict, comme avant.
  */
 export function planTableau(
   ranking: PoolRanking[],
-  options: { playAllPositions: boolean; thirdPlaceMatch: boolean }
-): { qualified: PoolRanking[]; size: number; matches: TableauMatch[] } {
-  const qualified = ranking
-    .filter(r => isTableauEligible(r.fencer))
-    .sort((a, b) => a.rank - b.rank);
-  const size = mainTableauSize(qualified.length, options.playAllPositions);
+  options: { playAllPositions: boolean; thirdPlaceMatch: boolean },
+  draw?: PlanTableauDraw
+): {
+  qualified: PoolRanking[];
+  size: number;
+  matches: TableauMatch[];
+  draw?: TableauDrawResult;
+} {
+  const eligible = ranking.filter(r => isTableauEligible(r.fencer)).sort((a, b) => a.rank - b.rank);
+  const size = mainTableauSize(eligible.length, options.playAllPositions);
+  if (!draw) {
+    const matches = buildTableauMatches(
+      eligible,
+      size,
+      options.playAllPositions,
+      options.thirdPlaceMatch
+    );
+    return { qualified: eligible, size, matches };
+  }
+  const byEntryRank = !!draw.entryRankOf;
+  const result = drawTableau(
+    eligible.map(r => ({
+      id: r.fencer.id,
+      entryRank: draw.entryRankOf ? draw.entryRankOf(r) : r.rank,
+    })),
+    { mode: draw.mode, seed: draw.seed, byEntryRank }
+  );
+  const byId = new Map(eligible.map(r => [r.fencer.id, r]));
+  // Rang d'entrée : ordre tiré au rang d'entrée (ex aequo, non classés), sinon rang du classement
+  const qualified = result.order.map((id, i) => {
+    const r = byId.get(id)!;
+    return byEntryRank ? { ...r, rank: i + 1 } : r;
+  });
+  const rankOf = new Map(qualified.map(r => [r.fencer.id, r]));
+  const placed = result.slots.map(id => rankOf.get(id)!);
   const matches = buildTableauMatches(
-    qualified,
+    placed,
     size,
     options.playAllPositions,
     options.thirdPlaceMatch
   );
-  return { qualified, size, matches };
+  return { qualified, size, matches, draw: result };
+}
+
+/**
+ * Emplacement de chaque tireur d'un tableau tiré (PV de tirage, docs/adr/0045) : relu sur la
+ * grille du premier tour (`generateFIESeeding`) et sur les barrages de « toutes les places »
+ * (barrage i : emplacements taille − barrages + i + 1 et taille + barrages − i).
+ */
+export function tableauEmplacements(
+  matches: ReadonlyArray<Pick<TableauMatch, 'round' | 'position' | 'fencerA' | 'fencerB'>>
+): Record<string, number> {
+  // Premier tour : tour complet le plus grand (barrages au tour « taille × 2 », incomplet)
+  const counts = new Map<number, number>();
+  for (const m of matches) if (m.round !== 3) counts.set(m.round, (counts.get(m.round) ?? 0) + 1);
+  let first = 0;
+  for (const [round, count] of counts) if (count === round / 2 && round > first) first = round;
+  const out: Record<string, number> = {};
+  if (first < 2) return out;
+  const chart = generateFIESeeding(first);
+  for (const m of matches.filter(x => x.round === first)) {
+    if (m.fencerA) out[m.fencerA.id] = chart[m.position * 2];
+    if (m.fencerB) out[m.fencerB.id] = chart[m.position * 2 + 1];
+  }
+  const barrages = matches.filter(x => x.round === first * 2);
+  for (const m of barrages) {
+    if (m.fencerA) out[m.fencerA.id] = first - barrages.length + m.position + 1;
+    if (m.fencerB) out[m.fencerB.id] = first + barrages.length - m.position;
+  }
+  return out;
 }

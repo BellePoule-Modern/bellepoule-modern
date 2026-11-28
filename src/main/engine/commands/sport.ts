@@ -95,6 +95,8 @@ import {
   poolDistributionOfRound,
   tableauQualificationOf,
 } from '../../../shared/domain/formula/formulaV2';
+import { entryOrderOfComposition, tableauDrawSetup, validEntryRank } from './tableauDrawSetup';
+import type { TableauDrawMode, TableauDrawState } from '../../../shared/domain/tableau/tableauDraw';
 import { legacyRapieresRead } from '../../../shared/domain/formula/rapieresFormula';
 import { stoppedTableauOf } from '../../../shared/domain/formula/formulaSteps';
 import { originFinalRanking, splitHistoryOf } from '../../../shared/domain/formula/splitPlan';
@@ -440,6 +442,8 @@ export function generatePools(
       finalResults: [],
       consolationBrackets: [],
       groupTableaux: {},
+      // Tirage effacé avec le tableau (docs/adr/0045)
+      tableauDraw: undefined,
       skipPoolPhase: false,
       poolsLaunched: true,
       // Composition de l'écran : bornes de taille choisies à la préparation conservées
@@ -777,7 +781,13 @@ function recordPoolScore(
         overallRanking,
         // Tableau retiré : refait sur le classement corrigé à l'ouverture de l'onglet Tableau
         ...(correction?.rebuildTableau
-          ? { tableauMatches: [], consolationBrackets: [], finalResults: [], groupTableaux: {} }
+          ? {
+              tableauMatches: [],
+              consolationBrackets: [],
+              finalResults: [],
+              groupTableaux: {},
+              tableauDraw: undefined,
+            }
           : {}),
       });
       recordEvents(ctx, comp.id, [
@@ -997,7 +1007,11 @@ export function buildBracket(
     group?: string;
     /** Ex aequo à la barre pour ce tableau, prime sur la formule (docs/adr/0040) */
     ties?: TiesAtBar;
-  } = {}
+    /** Graine du tirage (docs/adr/0045) ; absente : tirée par le moteur */
+    seed?: number;
+  } = {},
+  /** Heure du tirage (état `tableauDraw.at`) */
+  now: Date = new Date()
 ) {
   const comp = getCompetitionOrThrow(ctx, competitionId);
   const session = readSession(ctx, competitionId);
@@ -1010,6 +1024,8 @@ export function buildBracket(
   }
   if (options.composition) assertScoreSupported(comp);
   else assertSupported(comp);
+  // Tirage (docs/adr/0045) : mode, tableau au rang d'entrée, graine ; composition refusée
+  const { mode, byEntryRank, seed } = tableauDrawSetup(comp, session, options);
   const group = assertTableauGroup(comp, session, options.group);
   const eff = effectiveSettings(comp);
   if (!eff.hasDirectElimination) {
@@ -1055,6 +1071,8 @@ export function buildBracket(
   let size: number;
   let matches: TableauMatch[];
   let tiedAtBar: TiedAtBar | null = null;
+  // Ordre d'entrée retenu (journal, état) : ordre tiré, ou rang du placement de l'écran
+  let order: string[];
   const ties = assertTies(options.ties);
   if (options.composition) {
     const all = ctx.db.getFencersByCompetition(competitionId);
@@ -1074,16 +1092,32 @@ export function buildBracket(
         .filter(Boolean)
     );
     qualified = { length: placed.size };
+    order = entryOrderOfComposition(matches, size);
   } else {
     const cut = tableauRankingCut(comp, session, group, ties);
     tiedAtBar = cut.tiedAtBar;
-    // Même planification que l'écran, « toutes les places » comprise (barrages, #2013, F4g)
-    ({ qualified, size, matches } = planTableau(cut.ranking, {
-      playAllPositions: playAll,
-      thirdPlaceMatch: thirdPlace,
-    }));
+    // Rang d'entrée du tableau sans poule : classement saisi du tireur (non classé : null)
+    const entryRanks = byEntryRank
+      ? new Map(ctx.db.getFencersByCompetition(competitionId).map(f => [f.id, f.ranking]))
+      : null;
+    // Même planification que l'écran, « toutes les places » comprise (barrages, #2013, F4g) ;
+    // tirage du mode de la formule sur la grille unique (docs/adr/0045)
+    const plan = planTableau(
+      cut.ranking,
+      { playAllPositions: playAll, thirdPlaceMatch: thirdPlace },
+      {
+        mode,
+        seed,
+        ...(entryRanks
+          ? { entryRankOf: r => validEntryRank(entryRanks.get(r.fencer.id) ?? r.fencer.ranking) }
+          : {}),
+      }
+    );
+    ({ qualified, size, matches } = plan);
+    order = plan.qualified.map(r => r.fencer.id);
     if (group) matches = prefixTableau(matches, group);
   }
+  const draw: TableauDrawState = { mode, seed, at: now.toISOString(), order };
   if (qualified.length < 2) {
     throw new CommandError('not_enough_fencers', 'Moins de 2 tireurs qualifiés pour le tableau');
   }
@@ -1097,6 +1131,8 @@ export function buildBracket(
       .filter(m => m.round === size)
       .map(bracketMatchView)
       .sort((a, b) => a.position - b.position),
+    // Rejouer la commande avec cette graine donne ce tableau (docs/adr/0045)
+    draw: { mode, seed } as { mode: TableauDrawMode; seed: number },
   };
   if (options.dryRun) return summary;
   ctx.db.transaction(() => {
@@ -1106,7 +1142,12 @@ export function buildBracket(
       });
     }
     persistTableau(ctx, comp, matches);
-    const fresh = { tableauMatches: matches, finalResults: [], consolationBrackets: [] };
+    const fresh = {
+      tableauMatches: matches,
+      finalResults: [],
+      consolationBrackets: [],
+      tableauDraw: draw,
+    };
     writeSession(ctx, competitionId, {
       currentPhase: PHASE.tableau,
       // Groupe : rangé dans groupTableaux ; un tableau repris du même groupe quitte la racine
@@ -1114,7 +1155,12 @@ export function buildBracket(
         ? {
             ...slotPatch(session, { group, atRoot: false }, fresh),
             ...(previous.atRoot
-              ? { tableauMatches: [], consolationBrackets: [], finalResults: [] }
+              ? {
+                  tableauMatches: [],
+                  consolationBrackets: [],
+                  finalResults: [],
+                  tableauDraw: undefined,
+                }
               : {}),
           }
         : fresh),
@@ -1132,6 +1178,8 @@ export function buildBracket(
             seedA: m.seedA ?? null,
             seedB: m.seedB ?? null,
           })),
+          // Tirage (docs/adr/0045) : identifiants et nombres seulement
+          draw: { mode, seed, order },
         },
       },
     ]);

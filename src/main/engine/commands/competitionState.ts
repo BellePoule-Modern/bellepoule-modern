@@ -12,6 +12,7 @@ import type { TeamsStateDTO } from '../../../shared/api/contractTeams';
 import { sessionGroupTableaux } from '../../../shared/domain/ranking/splitGroups';
 import { poolWavesOf } from '../../../shared/domain/pools/waves';
 import { groupTableauxView } from './groupTableaux';
+import { tableauDrawStateOf } from '../../../shared/domain/tableau/tableauDraw';
 
 const arr = <T>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
 
@@ -87,6 +88,10 @@ export function competitionState(
       : session.groupTableaux && Object.keys(sessionGroupTableaux(session)).length > 0
         ? { groupTableaux: sessionGroupTableaux(session) }
         : {}),
+    // Tirage du tableau unique ou du tableau d'équipes (docs/adr/0045) ; groupes : groupTableaux
+    ...(tableauDrawStateOf(session.tableauDraw) && !rootMoved
+      ? { tableauDraw: tableauDrawStateOf(session.tableauDraw)! }
+      : {}),
     // Épreuve par équipes (docs/adr/0024) : équipes, rencontres, relais ; null : individuelle
     ...(teams !== undefined ? { teams } : {}),
   };

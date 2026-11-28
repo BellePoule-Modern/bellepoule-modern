@@ -31,6 +31,7 @@ import { isWavesOrder } from '../pools/waves';
 import { normalizeRankingFilterKeys, type RankingFilterKey } from '../ranking/rankingFilters';
 import type { RapieresTableauMode } from '../rapieres/tableauQualifiers';
 import { isLegacyRapieres, legacyRapieresFormula } from './rapieresFormula';
+import { tableauDrawModeOf, type TableauDrawMode } from '../tableau/tableauDraw';
 
 /** Réglages v1 non exécutés, gardés pour l'aller-retour avec `customFormula` (retirés à la 3.0) */
 export type LegacyPoolSettings = Pick<
@@ -104,6 +105,12 @@ export interface TableauPhase {
   scoring?: CustomScoringConfig;
   /** Étape D : tableau arrêté quand il reste N tireurs (tableau intercalé) */
   stopAt?: number;
+  /**
+   * Mode de tirage du tableau (docs/adr/0045) : strict (absent), par paires, par groupes ou
+   * intégral ; réglage de structure, figé une fois le tableau tiré (S6). Aucun réglage plat ne
+   * le porte.
+   */
+  draw?: TableauDrawMode;
   /** Épreuve par équipes : surcharge de la règle de rencontre, champ par champ (ADR-0044) */
   teamMatch?: Partial<TeamMatchRule>;
   legacy?: LegacyTableauSettings;
@@ -549,6 +556,15 @@ export function tieBreakByVictoryOf(
   settings: Partial<CompetitionSettings> | undefined
 ): boolean {
   return allowsVictoryTieBreak(weapon, readableFormulaOf(settings)?.general.tieBreakByVictory);
+}
+
+/**
+ * Mode de tirage du tableau joué (docs/adr/0045) : celui de la formule enregistrée, strict sans
+ * formule (aucun réglage plat ne le porte) ou sans réglage
+ */
+export function tableauDrawOf(settings: Partial<CompetitionSettings> | undefined): TableauDrawMode {
+  const f = readableFormulaOf(settings);
+  return tableauDrawModeOf(f ? playedTableauOf(f)?.draw : undefined);
 }
 
 /** Filtres du classement final de l'épreuve : ceux de la formule, aucun par défaut (docs/adr/0043, F4d) */

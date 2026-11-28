@@ -7,7 +7,15 @@
  * Licensed under GPL-3.0
  */
 import { z } from 'zod';
-import { command, CommandId, CompetitionId, DryRun, Id } from './contractDef';
+import {
+  command,
+  CommandId,
+  CompetitionId,
+  DryRun,
+  Id,
+  TableauDrawSeed,
+  TableauDrawSummary,
+} from './contractDef';
 import {
   PassivityCardSchema,
   RelayCardSchema,
@@ -123,6 +131,12 @@ export const TeamsStateSchema = z.object({
    * tableau de l'écran et des PDF.
    */
   tableauSeeds: z.array(z.string()),
+  /**
+   * Équipes du tableau tiré par emplacement (docs/adr/0045) : placées par la table de
+   * placement, elles redonnent le premier tour tiré (écran, PDF) ; avant le tirage, les têtes
+   * de série
+   */
+  tableauPlacement: z.array(z.string()),
   /**
    * Classement final (teamFinalRanking, docs/adr/0044) : perdants ex aequo par tour, départagés
    * par le classement d'entrée du tableau ; petite finale ; éliminées à l'issue des poules
@@ -290,13 +304,15 @@ export const teamRelayOperations = {
       'Épreuve par équipes : tire le tableau d’équipes sur le classement de poule (arène Sabre Laser : évitement de revanche au premier tour, 5↔6 et 7↔8) et crée les rencontres dont les deux équipes sont connues, avec leurs relais. ' +
       'Tour = nombre de rencontres du tour (taille / 2 au premier, 1 en finale) ; identifiants `${competitionId}-t${tour}-${position}`. ' +
       'Refus : épreuve individuelle (unsupported_format), moins de 2 équipes (invalid_composition), titulaires manquants (team_incomplete), rencontres de poule non terminées (pools_not_complete), tableau déjà créé sans « replace » (bracket_exists), relais du tableau déjà joués (bracket_has_scores). ' +
-      'Journal : TeamTableauGenerated, puis un TeamMatchScheduled par rencontre.',
+      'Tirage (docs/adr/0045) : mode de la phase tableau de la formule (« draw » : strict, pairs, groups, random ; arène Sabre Laser : strict) ; tableau sans poule : équipes à rang effectif égal et sans rang tirées au sort (ADR-0044). Le moteur tire la graine (0 à 2³² − 1) sauf « seed » ; « draw » rend { mode, seed }, aperçu compris : rejouer avec la graine de l’aperçu donne le même tableau. ' +
+      'Journal : TeamTableauGenerated (tirage compris), puis un TeamMatchScheduled par rencontre.',
     input: z.object({
       competitionId: CompetitionId,
       replace: z
         .boolean()
         .optional()
         .describe('Remplacer un tableau d’équipes dont aucun relais n’est joué'),
+      seed: TableauDrawSeed,
       dryRun: DryRun,
       expectedRevision: ExpectedRevision,
       commandId: CommandId,
@@ -314,6 +330,7 @@ export const teamRelayOperations = {
         })
       ),
       matchIds: z.array(z.string()),
+      draw: TableauDrawSummary,
       revision: Revision,
     }),
     permission: 'score:write',

@@ -85,6 +85,7 @@ export function useTableauViewScoring(ctx: Ctx) {
     onRecordScore,
     onGenerateTableau,
     onClearScore,
+    engineDraw,
   } = ctx;
   const client = useBpmClient();
   // Génération en cours par le moteur : l'effet de montage ne la relance pas
@@ -112,7 +113,10 @@ export function useTableauViewScoring(ctx: Ctx) {
       const hasThirdPlace = matches.some(m => m.round === 3);
       const thirdPlaceMismatch = thirdPlaceMatch !== hasThirdPlace;
 
-      if (matches.length === 0 || currentSize !== expectedSize || thirdPlaceMismatch) {
+      // Tableau tiré par le moteur (docs/adr/0045) : jamais régénéré, relu tel quel
+      if (engineDraw && matches.length > 0) {
+        setTableauSize(currentSize);
+      } else if (matches.length === 0 || currentSize !== expectedSize || thirdPlaceMismatch) {
         generateTableau();
       } else {
         setTableauSize(currentSize);
@@ -205,12 +209,13 @@ export function useTableauViewScoring(ctx: Ctx) {
     });
     setTableauSize(size);
     setConsolationBrackets([]); // réinitialiser les brackets de consolation
-    // Placement écrit par le moteur (TableauGenerated) ; l'écran relit l'état. Hors moteur
-    // ou tableaux séparés : tableau local, comme avant
+    // Placement écrit par le moteur (TableauGenerated) ; l'écran relit l'état. Tirage par le
+    // moteur (docs/adr/0045) : aucun placement envoyé. Hors moteur ou tableaux séparés :
+    // tableau local, comme avant
     if (onGenerateTableau) {
       if (generatingRef.current) return;
       generatingRef.current = true;
-      void onGenerateTableau(newMatches, thirdPlaceMatch)
+      void onGenerateTableau(engineDraw ? null : newMatches, thirdPlaceMatch)
         .then(outcome => {
           if (outcome === 'local') onMatchesChange(newMatches);
         })

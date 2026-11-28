@@ -193,3 +193,17 @@ export const FencerSchema = z.object({
   handicap: z.boolean().nullable(),
   photo: z.string().nullable(),
 });
+
+/** Graine du tirage du tableau (docs/adr/0045) ; absente : tirée par le moteur */
+export const TableauDrawSeed = z
+  .number()
+  .int()
+  .min(0)
+  .max(0xffffffff)
+  .optional()
+  .describe('Graine du tirage (0 à 2³² − 1) ; absente : tirée par le moteur');
+/** Tirage rendu par generateTableau / generateTeamTableau, aperçu compris (docs/adr/0045) */
+export const TableauDrawSummary = z.object({
+  mode: z.enum(['strict', 'pairs', 'groups', 'random']),
+  seed: z.number().int(),
+});

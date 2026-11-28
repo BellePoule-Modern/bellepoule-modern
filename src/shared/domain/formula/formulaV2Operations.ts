@@ -52,6 +52,7 @@ import { tiesIssue } from '../ranking/advancement';
 import { normalizeRankingFilterKeys, rankingFilterKeysIssue } from '../ranking/rankingFilters';
 import { teamFormulaIssues } from '../teams/teamMatchRule';
 import type { TeamFormat } from '../teams/relay';
+import { TABLEAU_DRAW_MODES, type TableauDrawMode } from '../tableau/tableauDraw';
 export { tiesIssue };
 
 const isPool = (p: FormulaPhaseV2): p is PoolRoundPhase => p.kind === 'pool';
@@ -409,6 +410,7 @@ const TABLEAU_FIELDS = [
   'allPlaces',
   'scoring',
   'stopAt',
+  'draw',
   'teamMatch',
 ] as const;
 
@@ -537,12 +539,21 @@ function setPool(
 function setTableau(p: TableauPhase, raw: Record<string, unknown>, where: string): TableauPhase {
   const s = renamed(raw, TABLEAU_ALIASES);
   checkFields(s, TABLEAU_FIELDS, where);
-  const { stopAt, ...rest } = s;
+  const { stopAt, draw, ...rest } = s;
   const next: TableauPhase = withTeamMatchOverride(
     { ...p, ...(rest as Partial<TableauPhase>) },
     rest,
     where
   );
+  if (draw !== undefined) {
+    // null ou « strict » : placement au rang (défaut, clé absente), docs/adr/0045
+    if (draw === null || draw === 'strict') delete next.draw;
+    else if (!(TABLEAU_DRAW_MODES as readonly unknown[]).includes(draw))
+      throw new FormulaOperationError(
+        `${where} : « draw » attend ${TABLEAU_DRAW_MODES.join(' | ')}`
+      );
+    else next.draw = draw as TableauDrawMode;
+  }
   if (stopAt !== undefined) {
     // null ou 0 : tableau jusqu'à la finale
     if (stopAt === null || stopAt === 0) delete next.stopAt;
@@ -1053,7 +1064,14 @@ export function splitIssues(split: SplitPhase, scope: FormulaScope): FormulaRema
     .map(b => b.phases[0])
     .filter(isTableau)
     .map(t =>
-      JSON.stringify([t.maxScore, t.timerSeconds, t.thirdPlace, t.allPlaces, t.scoring ?? null])
+      JSON.stringify([
+        t.maxScore,
+        t.timerSeconds,
+        t.thirdPlace,
+        t.allPlaces,
+        t.scoring ?? null,
+        t.draw ?? 'strict',
+      ])
     );
   if (new Set(kept).size > 1)
     add(
@@ -1151,6 +1169,7 @@ const TABLEAU_DIFF = [
   'allPlaces',
   'scoring',
   'stopAt',
+  'draw',
 ] as const;
 const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 function changed(from: object, to: object, keys: readonly string[]) {

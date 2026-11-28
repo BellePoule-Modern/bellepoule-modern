@@ -53,6 +53,7 @@ import {
   rankTeamsForTableau,
   tableauSeedIds,
   type TeamTableauPlan,
+  tableauPlacementIds,
 } from '../../../shared/domain/teams/teamTableau';
 import { teamTableauEntry } from '../../../shared/domain/teams/teamTableauEntry';
 
@@ -562,6 +563,8 @@ export function teamsState(ctx: CommandContext, comp: Competition): TeamsStateDT
     })),
     withdrawn: [...withdrawn.values()],
     tableauSeeds: seeds,
+    // Placement du tableau tiré (docs/adr/0045) : par emplacement ; avant le tirage, têtes de série
+    tableauPlacement: tableau.length > 0 ? tableauPlacementIds(tableauOf(ctx, comp)) : seeds,
     finalRanking: {
       rows: final.rows.map(r => ({ teamId: r.team.id, rank: r.rank })),
       provisional: final.provisional,

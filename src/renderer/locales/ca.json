@@ -4936,5 +4936,30 @@
     "print_wave_from": "Tanda inicial",
     "print_wave_to": "Tanda final",
     "wave_n": "Tanda {{n}}"
+  },
+  "tableauDraw": {
+    "placement": "Col·locació",
+    "placement_hint": "Estricte: cap de sèrie 1 contra l'últim. Per parelles, per grups o integral: sorteig pel motor, amb una llavor desada i una acta imprimible. Fixat un cop sortejat el quadre.",
+    "mode": "Mode de sorteig",
+    "seed": "Llavor",
+    "mode_strict": "Estricte (per rànquing)",
+    "mode_pairs": "Per parelles (1-2, 3-4…)",
+    "mode_groups": "Per grups (3-4, 5-8, 9-16…)",
+    "mode_random": "Integral",
+    "print": "Imprimir l'acta del sorteig",
+    "pv_title": "Acta del sorteig del quadre",
+    "pv_competition": "Prova",
+    "pv_date": "Data",
+    "pv_size": "Quadre de",
+    "pv_group": "Grup",
+    "pv_drawn_at": "Sorteig fet el",
+    "pv_printed_at": "Imprès el",
+    "pv_rank": "Rànquing d'entrada",
+    "pv_name": "Nom",
+    "pv_affiliation": "Club / nació",
+    "pv_emplacement": "Posició",
+    "pv_note": "Menció",
+    "note_unranked": "no classificat · sortejat",
+    "note_tie": "desempatat per sorteig"
   }
 }

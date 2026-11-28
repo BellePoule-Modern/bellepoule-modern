@@ -18,6 +18,7 @@ import {
   PoolRanking,
 } from '../../types';
 import type { ConsolationBracket, FinalResult, TableauMatch } from '../tableau/tableauTypes';
+import { tableauDrawStateOf, type TableauDrawState } from '../tableau/tableauDraw';
 import { maxScoreLimits } from '../formula/laserMaxScores';
 
 /** Critère de séparation des tableaux (réglage postPoolSplitCriteria) */
@@ -105,6 +106,8 @@ export interface GroupTableau {
   tableauMatches: TableauMatch[];
   consolationBrackets: ConsolationBracket[];
   finalResults: FinalResult[];
+  /** Tirage du tableau du groupe (docs/adr/0045) ; absent : tableau tiré avant, ou pas tiré */
+  tableauDraw?: TableauDrawState;
 }
 
 /** Identifiant de match d'un tableau de groupe : préfixé par le groupe (idempotent) */
@@ -148,10 +151,12 @@ export function sessionGroupTableaux(
   const out: Record<string, GroupTableau> = {};
   for (const [group, t] of Object.entries(raw as Record<string, Record<string, unknown>>)) {
     if (!t || typeof t !== 'object') continue;
+    const draw = tableauDrawStateOf(t.tableauDraw);
     out[group] = {
       tableauMatches: list<TableauMatch>(t.tableauMatches),
       consolationBrackets: list<ConsolationBracket>(t.consolationBrackets),
       finalResults: list<FinalResult>(t.finalResults),
+      ...(draw ? { tableauDraw: draw } : {}),
     };
   }
   return out;

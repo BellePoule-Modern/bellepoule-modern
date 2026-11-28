@@ -23,6 +23,7 @@ const data = vi.hoisted(() => ({
   tableauMatches: [] as unknown[],
   finalRanking: { rows: [] as Array<{ teamId: string; rank: number }>, provisional: true },
   tableauSeeds: [] as string[],
+  tableauPlacement: undefined as string[] | undefined,
 }));
 vi.mock('../hooks/useTeamCompetition', () => ({
   useTeamCompetition: () => ({
@@ -36,6 +37,7 @@ vi.mock('../hooks/useTeamCompetition', () => ({
     withdrawn: {},
     finalRanking: data.finalRanking,
     tableauSeeds: data.tableauSeeds,
+    tableauPlacement: data.tableauPlacement,
     loading: false,
     run,
   }),
@@ -69,6 +71,10 @@ import { TeamManagerView, type TeamViewMode } from './TeamManagerView';
 import { ConfirmProvider } from './ConfirmDialog';
 import { ToastProvider } from './Toast';
 import { frT } from '../testUtils/i18nMock';
+import { BpmClientProvider } from '../api/BpmClientContext';
+import { PlatformProvider } from '../platform/PlatformContext';
+import { fakePlatform } from '../../shared/platform/testing';
+import type { BpmClient } from '../../shared/api/client';
 import type { Competition } from '../../shared/types';
 
 const RULE = { starters: 3, reserves: 2, relayStep: 5, relayOrder: 'fie' };
@@ -156,6 +162,7 @@ beforeEach(() => {
   data.teams = [team('ta', 'Alpha', 2), team('tb', 'Bravo')];
   data.poolMatches = [];
   data.tableauMatches = [];
+  data.tableauPlacement = undefined;
   data.finalRanking = { rows: [], provisional: true };
   data.tableauSeeds = ['ta', 'tb'];
   Object.values(pdf).forEach(f => f.mockClear());
@@ -333,6 +340,69 @@ describe('TeamManagerView — tableau tiré par le moteur (teams.tableauSeeds, d
     expect(seeds.map(x => x.id)).toEqual(['tb', 'ta', 'tc']);
     // Tête de série 1 exempte au premier tour (tableau de 4)
     expect(screen.getAllByText(/Bravo/).length).toBeGreaterThan(0);
+  });
+});
+
+describe('TeamManagerView — tableau tiré au sort (teams.tableauPlacement, docs/adr/0045)', () => {
+  it('placement affiché et PDF : équipes par emplacement tiré, pas les têtes de série', async () => {
+    data.teams = [team('ta', 'Alpha', 1), team('tb', 'Bravo', 2), team('tc', 'Charlie', 3)];
+    data.tableauSeeds = ['ta', 'tb', 'tc'];
+    data.tableauPlacement = ['tb', 'ta', 'tc'];
+    data.tableauMatches = [tableauMatch('s2', 2, 1, 'tc', 'ta')];
+    show('tableau', { formula: tableauOnly });
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(frT('teams.pdfExport')) }));
+    await waitFor(() => expect(pdf.exportTeamTableauToPDF).toHaveBeenCalled());
+    const [, placed] = pdf.exportTeamTableauToPDF.mock.calls[
+      pdf.exportTeamTableauToPDF.mock.calls.length - 1
+    ] as unknown as [unknown, Array<{ id: string }>];
+    expect(placed.map(x => x.id)).toEqual(['tb', 'ta', 'tc']);
+  });
+});
+
+describe('TeamManagerView — mode, graine et PV du tableau d’équipes (docs/adr/0045)', () => {
+  it('tableau sans poule tiré par paires : mode et graine affichés, PV imprimé par la plateforme', async () => {
+    data.teams = [team('ta', 'Alpha', 1), team('tb', 'Bravo', 2), team('tc', 'Charlie')];
+    data.tableauSeeds = ['ta', 'tb', 'tc'];
+    data.tableauPlacement = ['tb', 'ta', 'tc'];
+    data.tableauMatches = [tableauMatch('s2', 2, 1, 'tc', 'ta')];
+    const state = {
+      tableauDraw: {
+        mode: 'pairs',
+        seed: 31337,
+        at: '2026-11-28T09:00:00.000Z',
+        order: ['ta', 'tb', 'tc'],
+      },
+    };
+    const client = { query: vi.fn(async () => ({ state })) } as unknown as BpmClient;
+    const print = vi.fn(async (_html: string) => undefined);
+    render(
+      <PlatformProvider platform={fakePlatform({ over: { print } })}>
+        <BpmClientProvider client={client}>
+          <ToastProvider>
+            <ConfirmProvider>
+              <TeamManagerView
+                competition={competition({ formula: tableauOnly })}
+                fencers={[]}
+                view="tableau"
+                onNavigate={vi.fn()}
+              />
+            </ConfirmProvider>
+          </ToastProvider>
+        </BpmClientProvider>
+      </PlatformProvider>
+    );
+    expect(await screen.findByTestId('tableau-draw-seed')).toHaveTextContent('31337');
+    expect(screen.getByTestId('tableau-draw-mode')).toHaveTextContent(
+      frT('tableauDraw.mode_pairs')
+    );
+    fireEvent.click(screen.getByTestId('tableau-draw-print'));
+    await waitFor(() => expect(print).toHaveBeenCalled());
+    const html = print.mock.calls[0][0];
+    expect(html).toContain('31337');
+    expect(html).toContain('Alpha');
+    expect(html).toContain('Charlie');
+    // Équipe sans rang saisi ni calculé : non classée, tirée au sort (ADR-0044 amendée)
+    expect(html).toContain(frT('tableauDraw.note_unranked'));
   });
 });
 

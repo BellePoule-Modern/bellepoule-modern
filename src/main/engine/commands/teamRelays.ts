@@ -44,7 +44,15 @@ import {
   teamPoolRoundOf,
   teamTableauOf,
 } from '../../../shared/domain/teams/teamMatchRule';
-import { phaseSettings, type PhaseRef } from '../../../shared/domain/formula/formulaV2';
+import {
+  phaseSettings,
+  tableauDrawOf,
+  type PhaseRef,
+} from '../../../shared/domain/formula/formulaV2';
+import { randomInt } from 'crypto';
+import { drawTableau, type TableauDrawMode } from '../../../shared/domain/tableau/tableauDraw';
+import { teamDrawEntries } from '../../../shared/domain/teams/teamEntryRanking';
+import { readSession } from './sessionView';
 import { relayPenaltyTouches } from '../../../shared/domain/teams/teamCards';
 import { involvesWithdrawn } from '../../../shared/domain/teams/teamWithdrawal';
 import type { NewJournalEvent } from '../../../database/repos/eventLogRepo';
@@ -52,6 +60,7 @@ import { CommandError, type CommandContext } from './context';
 import { EVENT, recordEvents } from './eventLog';
 import {
   changed,
+  fencerRankingOf,
   rankable,
   tableauEntryOf,
   tableauOf,
@@ -209,7 +218,7 @@ function insertTableauMatches(
 
 export function generateTeamTableau(
   ctx: CommandContext,
-  input: { competitionId: string; replace?: boolean; dryRun?: boolean },
+  input: { competitionId: string; replace?: boolean; dryRun?: boolean; seed?: number },
   now: Date = new Date(),
   /** Hasard injecté : ex aequo à la barre tirés au sort (ADR-0040) */
   random: () => number = Math.random
@@ -260,7 +269,20 @@ export function generateTeamTableau(
   if (qualified.length < 2) {
     throw new CommandError('not_enough_qualifiers', 'Moins de 2 équipes qualifiées');
   }
-  const tableau = planTeamTableau(qualified);
+  // Tirage (docs/adr/0045) : mode de la formule (arène Sabre Laser : strict, évitement de
+  // revanche) ; tableau sans poule : rang effectif égal et sans rang tirés (ADR-0044 amendée)
+  const mode: TableauDrawMode =
+    teamFormatOf(comp.settings) === 'laser-arena' ? 'strict' : tableauDrawOf(comp.settings);
+  const byEntryRank = !!formula && !teamPoolRoundOf(formula);
+  const seed = input.seed ?? randomInt(0, 2 ** 32);
+  const drawn = drawTableau(
+    byEntryRank
+      ? teamDrawEntries(qualified, teamRuleOf(comp).starters, fencerRankingOf(ctx, comp.id))
+      : qualified.map((t, i) => ({ id: t.id, entryRank: i + 1 })),
+    { mode, seed, byEntryRank }
+  );
+  const byId = new Map(qualified.map(t => [t.id, t]));
+  const tableau = planTeamTableau(drawn.slots.map(id => byId.get(id)!));
   const plans = planTeamTableauMatches(
     comp.id,
     tableau,
@@ -270,15 +292,34 @@ export function generateTeamTableau(
     comp.weapon,
     setup.options
   );
-  const out = { size: tableau.size, slots: tableau.slots, matchIds: plans.map(m => m.matchId) };
+  const out = {
+    size: tableau.size,
+    slots: tableau.slots,
+    matchIds: plans.map(m => m.matchId),
+    // Rejouer la commande avec cette graine donne ce tableau (docs/adr/0045)
+    draw: { mode, seed },
+  };
   if (input.dryRun) return { dryRun: true, ...out };
 
   ctx.db.teams.deleteTeamMatches(comp.id);
   const scheduled = insertTableauMatches(ctx, comp, plans, now);
   recordEvents(ctx, comp.id, [
-    { type: EVENT.teamTableauGenerated, payload: { size: tableau.size, slots: tableau.slots } },
+    {
+      type: EVENT.teamTableauGenerated,
+      payload: {
+        size: tableau.size,
+        slots: tableau.slots,
+        draw: { mode, seed, order: drawn.order },
+      },
+    },
     ...scheduled,
   ]);
+  // État de session : tirage du tableau d'équipes seul (docs/adr/0045), remplacé au prochain
+  // tirage ; la phase et l'onglet restent lus dans les tables des équipes (competitionState)
+  ctx.db.saveSessionState(comp.id, {
+    ...readSession(ctx, comp.id),
+    tableauDraw: { mode, seed, at: now.toISOString(), order: drawn.order },
+  } as never);
   changed(ctx, comp.id);
   return { dryRun: false, ...out };
 }
