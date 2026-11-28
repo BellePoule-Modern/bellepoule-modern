@@ -349,7 +349,7 @@ export function useCompetitionSessionSync(ctx: Ctx) {
   // la commande (docs/adr/0043, F4b) ; tableaux séparés : tableau du groupe affiché
   // (docs/adr/0024), jamais tous les tireurs ensemble
   const generateTableau = useCallback(
-    (matches: TableauMatch[], thirdPlaceMatch: boolean): Promise<RecordScoreOutcome> =>
+    (matches: TableauMatch[] | null, thirdPlaceMatch: boolean): Promise<RecordScoreOutcome> =>
       splitCriteria && !activeSplitGroup
         ? Promise.resolve('refused')
         : generateTableauCommand(

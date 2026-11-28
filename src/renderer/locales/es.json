@@ -4936,5 +4936,30 @@
     "print_wave_from": "Tanda inicial",
     "print_wave_to": "Tanda final",
     "wave_n": "Tanda {{n}}"
+  },
+  "tableauDraw": {
+    "placement": "Colocación",
+    "placement_hint": "Estricto: cabeza de serie 1 contra el último. Por parejas, por grupos o integral: sorteo por el motor, con una semilla guardada y un acta imprimible. Fijado una vez sorteado el cuadro.",
+    "mode": "Modo de sorteo",
+    "seed": "Semilla",
+    "mode_strict": "Estricto (por ranking)",
+    "mode_pairs": "Por parejas (1-2, 3-4…)",
+    "mode_groups": "Por grupos (3-4, 5-8, 9-16…)",
+    "mode_random": "Integral",
+    "print": "Imprimir el acta del sorteo",
+    "pv_title": "Acta del sorteo del cuadro",
+    "pv_competition": "Prueba",
+    "pv_date": "Fecha",
+    "pv_size": "Cuadro de",
+    "pv_group": "Grupo",
+    "pv_drawn_at": "Sorteo realizado el",
+    "pv_printed_at": "Impreso el",
+    "pv_rank": "Ranking de entrada",
+    "pv_name": "Nombre",
+    "pv_affiliation": "Club / nación",
+    "pv_emplacement": "Posición",
+    "pv_note": "Mención",
+    "note_unranked": "sin clasificar · sorteado",
+    "note_tie": "desempatado por sorteo"
   }
 }

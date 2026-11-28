@@ -4936,5 +4936,30 @@
     "print_wave_from": "Da vaga",
     "print_wave_to": "Até à vaga",
     "wave_n": "Vaga {{n}}"
+  },
+  "tableauDraw": {
+    "placement": "Colocação",
+    "placement_hint": "Estrito: cabeça de série 1 contra o último. Por pares, por grupos ou integral: sorteio pelo motor, com uma semente guardada e uma ata imprimível. Fixo depois de sorteado o quadro.",
+    "mode": "Modo de sorteio",
+    "seed": "Semente",
+    "mode_strict": "Estrito (por ranking)",
+    "mode_pairs": "Por pares (1-2, 3-4…)",
+    "mode_groups": "Por grupos (3-4, 5-8, 9-16…)",
+    "mode_random": "Integral",
+    "print": "Imprimir a ata do sorteio",
+    "pv_title": "Ata do sorteio do quadro",
+    "pv_competition": "Prova",
+    "pv_date": "Data",
+    "pv_size": "Quadro de",
+    "pv_group": "Grupo",
+    "pv_drawn_at": "Sorteio feito em",
+    "pv_printed_at": "Impresso em",
+    "pv_rank": "Ranking de entrada",
+    "pv_name": "Nome",
+    "pv_affiliation": "Clube / nação",
+    "pv_emplacement": "Posição",
+    "pv_note": "Menção",
+    "note_unranked": "sem ranking · sorteado",
+    "note_tie": "desempatado por sorteio"
   }
 }

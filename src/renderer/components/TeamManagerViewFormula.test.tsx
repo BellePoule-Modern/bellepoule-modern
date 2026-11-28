@@ -23,6 +23,7 @@ const data = vi.hoisted(() => ({
   tableauMatches: [] as unknown[],
   finalRanking: { rows: [] as Array<{ teamId: string; rank: number }>, provisional: true },
   tableauSeeds: [] as string[],
+  tableauPlacement: undefined as string[] | undefined,
 }));
 vi.mock('../hooks/useTeamCompetition', () => ({
   useTeamCompetition: () => ({
@@ -36,6 +37,7 @@ vi.mock('../hooks/useTeamCompetition', () => ({
     withdrawn: {},
     finalRanking: data.finalRanking,
     tableauSeeds: data.tableauSeeds,
+    tableauPlacement: data.tableauPlacement,
     loading: false,
     run,
   }),
@@ -156,6 +158,7 @@ beforeEach(() => {
   data.teams = [team('ta', 'Alpha', 2), team('tb', 'Bravo')];
   data.poolMatches = [];
   data.tableauMatches = [];
+  data.tableauPlacement = undefined;
   data.finalRanking = { rows: [], provisional: true };
   data.tableauSeeds = ['ta', 'tb'];
   Object.values(pdf).forEach(f => f.mockClear());
@@ -333,6 +336,22 @@ describe('TeamManagerView — tableau tiré par le moteur (teams.tableauSeeds, d
     expect(seeds.map(x => x.id)).toEqual(['tb', 'ta', 'tc']);
     // Tête de série 1 exempte au premier tour (tableau de 4)
     expect(screen.getAllByText(/Bravo/).length).toBeGreaterThan(0);
+  });
+});
+
+describe('TeamManagerView — tableau tiré au sort (teams.tableauPlacement, docs/adr/0045)', () => {
+  it('placement affiché et PDF : équipes par emplacement tiré, pas les têtes de série', async () => {
+    data.teams = [team('ta', 'Alpha', 1), team('tb', 'Bravo', 2), team('tc', 'Charlie', 3)];
+    data.tableauSeeds = ['ta', 'tb', 'tc'];
+    data.tableauPlacement = ['tb', 'ta', 'tc'];
+    data.tableauMatches = [tableauMatch('s2', 2, 1, 'tc', 'ta')];
+    show('tableau', { formula: tableauOnly });
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(frT('teams.pdfExport')) }));
+    await waitFor(() => expect(pdf.exportTeamTableauToPDF).toHaveBeenCalled());
+    const [, placed] = pdf.exportTeamTableauToPDF.mock.calls[
+      pdf.exportTeamTableauToPDF.mock.calls.length - 1
+    ] as unknown as [unknown, Array<{ id: string }>];
+    expect(placed.map(x => x.id)).toEqual(['tb', 'ta', 'tc']);
   });
 });
 

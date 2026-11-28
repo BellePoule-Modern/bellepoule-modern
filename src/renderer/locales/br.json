@@ -4936,5 +4936,30 @@
     "print_wave_from": "Tour kentañ",
     "print_wave_to": "Tour diwezhañ",
     "wave_n": "Tour {{n}}"
+  },
+  "tableauDraw": {
+    "placement": "Lakadur",
+    "placement_hint": "Strizh : penn-rumm 1 a-enep an hini diwezhañ. Dre goubladoù, dre strolladoù pe a-bezh : tenn d'ar sord gant al lusker, gant un hadenn enrollet hag un danevell da voullañ. Stag pa vez tennet an daolenn.",
+    "mode": "Mod tennañ",
+    "seed": "Hadenn",
+    "mode_strict": "Strizh (dre renk)",
+    "mode_pairs": "Dre goubladoù (1-2, 3-4…)",
+    "mode_groups": "Dre strolladoù (3-4, 5-8, 9-16…)",
+    "mode_random": "A-bezh",
+    "print": "Moullañ danevell an tennañ",
+    "pv_title": "Danevell tennañ an daolenn",
+    "pv_competition": "Kenstrivadeg",
+    "pv_date": "Deiziad",
+    "pv_size": "Taolenn a",
+    "pv_group": "Strollad",
+    "pv_drawn_at": "Tennet d'an",
+    "pv_printed_at": "Moullet d'an",
+    "pv_rank": "Renk mont-tre",
+    "pv_name": "Anv",
+    "pv_affiliation": "Klub / broad",
+    "pv_emplacement": "Lec'h",
+    "pv_note": "Notenn",
+    "note_unranked": "n'eo ket renket · tennet d'ar sord",
+    "note_tie": "disrannet dre dennañ"
   }
 }

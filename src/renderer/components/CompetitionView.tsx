@@ -9,6 +9,7 @@ import { resultsRanking } from '../../shared/domain/ranking/resultsRanking';
 import {
   formulaOf,
   pendingSplitOf,
+  tableauDrawOf,
   poolBoutOrderOfRound,
   poolDistributionOfRound,
   rankingFiltersOf,
@@ -774,6 +775,14 @@ const CompetitionView: React.FC<CompetitionViewProps> = (props: CompetitionViewP
             stopAt={closedStage ? closedStage.stopAt : competitionCore.tableauStopAt}
             stageThenSplit={!!storedFormula && !!pendingSplitOf(storedFormula)}
             closedStage={!!closedStage}
+            // Tirage par le moteur (docs/adr/0045) : mode de la formule, ou tableau sans poule
+            engineDraw={tableauDrawOf(competition.settings) !== 'strict' || skipPoolPhase}
+            byEntryRank={skipPoolPhase}
+            competitionInfo={{
+              title: competition.title,
+              date: competition.date ? new Date(competition.date).toLocaleDateString() : null,
+              weapon: competition.weapon,
+            }}
           />
         )}
 

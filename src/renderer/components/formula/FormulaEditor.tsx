@@ -8,6 +8,10 @@
  * Licensed under GPL-3.0
  */
 
+import {
+  TABLEAU_DRAW_MODES,
+  type TableauDrawMode,
+} from '../../../shared/domain/tableau/tableauDraw';
 import React, { useState } from 'react';
 import { Plus, TriangleAlert, X } from 'lucide-react';
 import {
@@ -554,6 +558,28 @@ export const FormulaEditor: React.FC<FormulaEditorProps> = ({
             />
             <span>{t('competition.third_place_match_label')}</span>
           </label>
+          {/* Mode de tirage (docs/adr/0045) : réglage normal, strict par défaut (clé absente) */}
+          <div className="form-group">
+            <label htmlFor="tableau-draw" className="form-label">
+              {t('tableauDraw.placement')}
+            </label>
+            <select
+              id="tableau-draw"
+              className="form-input form-select"
+              value={tableau.draw ?? 'strict'}
+              onChange={e => {
+                const draw = e.target.value as TableauDrawMode;
+                set({ draw: draw === 'strict' ? undefined : draw });
+              }}
+            >
+              {TABLEAU_DRAW_MODES.map(mode => (
+                <option key={mode} value={mode}>
+                  {t(`tableauDraw.mode_${mode}`)}
+                </option>
+              ))}
+            </select>
+            <small className="u-hint">{t('tableauDraw.placement_hint')}</small>
+          </div>
         </fieldset>
         {teamRelay && ownTableau && (
           <FormulaTeamMatchFields

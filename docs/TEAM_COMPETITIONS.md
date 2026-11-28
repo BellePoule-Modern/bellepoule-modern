@@ -118,7 +118,7 @@ phases individuelles poules/tableau disparaissent). Après l'appel, « Composer 
    avec la fin du relais (`winner`) ; l'appareil de piste transmet sa priorité (`Prio`
    Cyrano, `priority` OPP2) : ACK et rencontre décidée, sans priorité NAK (#2191).
 3. **Tableau** : rien n'est créé à l'ouverture. Les poules terminées, « Générer le
-   tableau » le tire (`generateTeamTableau`, têtes de série = classement de poule coupé par la qualification de la formule, ou rang d'entrée sans poule, [ADR-0044](adr/0044-equipes-formule-v2.md)). Les
+   tableau » le tire (`generateTeamTableau`, têtes de série = classement de poule coupé par la qualification de la formule, ou rang d'entrée sans poule, [ADR-0044](adr/0044-equipes-formule-v2.md) ; placement selon le mode de tirage de la formule, avec graine et PV de tirage, et, sans poule, équipes à rang égal et sans rang tirées au sort, [ADR-0045](adr/0045-tirage-du-tableau.md)). Les
    tours suivants se créent dans le moteur au fur et à mesure des résultats ; « Tirer de
    nouveau le tableau » le refait tant qu'aucun relais n'y est joué.
 4. **Classement** : classement des équipes (victoires, relais individuels

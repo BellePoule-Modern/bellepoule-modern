@@ -4936,5 +4936,30 @@
     "print_wave_from": "Turno iniziale",
     "print_wave_to": "Turno finale",
     "wave_n": "Turno {{n}}"
+  },
+  "tableauDraw": {
+    "placement": "Collocazione",
+    "placement_hint": "Rigido: testa di serie 1 contro l'ultima. A coppie, a gruppi o integrale: sorteggio del motore, con un seme registrato e un verbale stampabile. Bloccato dopo il sorteggio del tabellone.",
+    "mode": "Modalità di sorteggio",
+    "seed": "Seme",
+    "mode_strict": "Rigido (per ranking)",
+    "mode_pairs": "A coppie (1-2, 3-4…)",
+    "mode_groups": "A gruppi (3-4, 5-8, 9-16…)",
+    "mode_random": "Integrale",
+    "print": "Stampa il verbale del sorteggio",
+    "pv_title": "Verbale del sorteggio del tabellone",
+    "pv_competition": "Gara",
+    "pv_date": "Data",
+    "pv_size": "Tabellone da",
+    "pv_group": "Gruppo",
+    "pv_drawn_at": "Sorteggio effettuato il",
+    "pv_printed_at": "Stampato il",
+    "pv_rank": "Ranking d'ingresso",
+    "pv_name": "Nome",
+    "pv_affiliation": "Società / nazione",
+    "pv_emplacement": "Posizione",
+    "pv_note": "Nota",
+    "note_unranked": "senza ranking · sorteggiato",
+    "note_tie": "spareggiato per sorteggio"
   }
 }

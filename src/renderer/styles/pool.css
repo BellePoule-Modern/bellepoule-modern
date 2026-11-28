@@ -999,6 +999,14 @@ button.pv-pill {
   gap: 0.5rem;
   margin: 0.25rem 0;
 }
+/* Tirage du tableau : mode, graine, PV (docs/adr/0045) */
+.tableau-draw {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
 .tableau-drift .tableau-drift-actions {
   justify-content: space-between;
   flex-wrap: wrap;

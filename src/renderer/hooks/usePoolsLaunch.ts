@@ -81,7 +81,9 @@ export function usePoolFencerAdd(competitionId: string | undefined) {
 /**
  * Tableau généré par l'écran (planTableau), écrit par le moteur : generateTableau avec le
  * placement complet, TableauGenerated au journal (docs/adr/0017). Le tableau se régénère à
- * l'écran quand le classement change : remplacement admis, comme avant.
+ * l'écran quand le classement change : remplacement admis, comme avant. `matches` null : le
+ * moteur tire (mode autre que strict, tableau au rang d'entrée, docs/adr/0045) ; l'écran
+ * n'envoie aucun placement et relit l'état.
  */
 export function useTableauGenerate(competitionId: string | undefined) {
   const client = useBpmClient();
@@ -89,18 +91,18 @@ export function useTableauGenerate(competitionId: string | undefined) {
   const { t } = useTranslation();
   return useCallback(
     async (
-      matches: TableauMatch[],
+      matches: TableauMatch[] | null,
       thirdPlaceMatch: boolean,
       /** Tableaux séparés après les poules : groupe du tableau (docs/adr/0024) */
       group?: string
     ): Promise<RecordScoreOutcome> => {
-      if (!competitionId || matches.length === 0) return 'local';
+      if (!competitionId || (matches !== null && matches.length === 0)) return 'local';
       try {
         await client.call('generateTableau', {
           competitionId,
-          composition: tableauComposition(matches),
+          // Tirage par le moteur : ni placement, ni remplacement d'un tableau tiré
+          ...(matches ? { composition: tableauComposition(matches), replace: true } : {}),
           thirdPlaceMatch,
-          replace: true,
           ...(group ? { group } : {}),
         });
         return 'recorded';

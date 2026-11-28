@@ -29,6 +29,9 @@ import { TableauDriftBanner } from '../tableau/TableauDriftBanner';
 import { TableauStageBanner } from '../tableau/TableauStageBanner';
 import type { PoolCorrectionImpact } from '../../../shared/utils/poolCorrectionImpact';
 import { useRemoteApi } from '../../api/remoteApi';
+import { TableauDrawPanel } from '../tableau/TableauDrawPanel';
+import { tableauEmplacements } from '../../../shared/domain/tableau/tableauCalculations';
+import { deriveFirstRound } from '../../../shared/domain/tableau/tableauTypes';
 
 const TableauView = React.lazy(() => import('../TableauView'));
 
@@ -79,6 +82,12 @@ interface TableauPhaseProps {
   closedStage?: boolean;
   /** Scission après le tableau arrêté (docs/adr/0039) : retour au Classement à la clôture */
   stageThenSplit?: boolean;
+  /** Tirage par le moteur (mode autre que strict, tableau au rang d'entrée, docs/adr/0045) */
+  engineDraw?: boolean;
+  /** Tableau au rang d'entrée (sans poule) : mentions du PV de tirage */
+  byEntryRank?: boolean;
+  /** Épreuve : en-tête du PV de tirage */
+  competitionInfo?: { title: string; date?: string | null; weapon?: string };
 }
 
 const TableauPhase: React.FC<TableauPhaseProps> = ({
@@ -118,6 +127,9 @@ const TableauPhase: React.FC<TableauPhaseProps> = ({
   stopAt,
   closedStage = false,
   stageThenSplit = false,
+  engineDraw = false,
+  byEntryRank = false,
+  competitionInfo,
 }) => {
   const remote = useRemoteApi();
   // Changement d'organisation seul (pistes, arbitres) : par le moteur ; le reste, à l'écran
@@ -221,7 +233,25 @@ const TableauPhase: React.FC<TableauPhaseProps> = ({
           </button>
         </div>
       )}
+      {competitionInfo && tableauMatches.length > 0 && (
+        <TableauDrawPanel
+          competitionId={competitionId}
+          competition={competitionInfo}
+          group={postPoolSplitCriteria ? activeSplitGroup : null}
+          size={deriveFirstRound(tableauMatches)}
+          entrants={ranking.map(r => ({
+            id: r.fencer.id,
+            name: `${r.fencer.lastName.toUpperCase()} ${r.fencer.firstName ?? ''}`.trim(),
+            affiliation: r.fencer.club || r.fencer.nationality || null,
+            entryRank: r.fencer.ranking ?? null,
+          }))}
+          emplacements={tableauEmplacements(tableauMatches)}
+          byEntryRank={byEntryRank}
+          refreshKey={tableauMatches}
+        />
+      )}
       <TableauView
+        engineDraw={engineDraw}
         ranking={ranking}
         matches={tableauMatches}
         onMatchesChange={handleMatchesChange}

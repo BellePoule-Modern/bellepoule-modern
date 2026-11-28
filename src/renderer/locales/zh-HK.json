@@ -4936,5 +4936,30 @@
     "print_wave_from": "起始輪次",
     "print_wave_to": "結束輪次",
     "wave_n": "第 {{n}} 輪"
+  },
+  "tableauDraw": {
+    "placement": "排位",
+    "placement_hint": "嚴格：第1號種子對最後一名。按對、按組或全部：由系統抽籤，記錄種子碼並可列印紀錄。對陣表抽籤後鎖定。",
+    "mode": "抽籤方式",
+    "seed": "種子碼",
+    "mode_strict": "嚴格（按排名）",
+    "mode_pairs": "按對（1-2、3-4…）",
+    "mode_groups": "按組（3-4、5-8、9-16…）",
+    "mode_random": "全部抽籤",
+    "print": "列印抽籤紀錄",
+    "pv_title": "對陣表抽籤紀錄",
+    "pv_competition": "賽事",
+    "pv_date": "日期",
+    "pv_size": "對陣表人數",
+    "pv_group": "組別",
+    "pv_drawn_at": "抽籤時間",
+    "pv_printed_at": "列印時間",
+    "pv_rank": "入場排名",
+    "pv_name": "姓名",
+    "pv_affiliation": "會籍 / 國籍",
+    "pv_emplacement": "位置",
+    "pv_note": "備註",
+    "note_unranked": "未排名 · 抽籤",
+    "note_tie": "抽籤決定"
   }
 }

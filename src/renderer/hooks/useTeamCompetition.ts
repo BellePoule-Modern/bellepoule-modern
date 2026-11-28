@@ -52,6 +52,8 @@ export interface TeamCompetitionData {
   finalRanking: TeamsStateDTO['finalRanking'];
   /** Têtes de série du tableau tiré par le moteur (ou classement d'entrée coupé), jamais recalculées ici */
   tableauSeeds: string[];
+  /** Équipes du tableau tiré par emplacement (docs/adr/0045) : placement affiché et PDF */
+  tableauPlacement: string[];
 }
 
 const EMPTY: TeamCompetitionData = {
@@ -65,6 +67,7 @@ const EMPTY: TeamCompetitionData = {
   withdrawn: {},
   finalRanking: { rows: [], provisional: true },
   tableauSeeds: [],
+  tableauPlacement: [],
 };
 
 /** Bloc « teams » au format de l'écran */
@@ -81,6 +84,7 @@ function fromBlock(block: TeamsStateDTO): TeamCompetitionData {
     withdrawn: Object.fromEntries(block.withdrawn.map(w => [w.teamId, w])),
     finalRanking: block.finalRanking ?? EMPTY.finalRanking,
     tableauSeeds: block.tableauSeeds ?? EMPTY.tableauSeeds,
+    tableauPlacement: block.tableauPlacement ?? block.tableauSeeds ?? EMPTY.tableauPlacement,
   };
 }
 

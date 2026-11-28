@@ -4936,5 +4936,30 @@
     "print_wave_from": "Vague de départ",
     "print_wave_to": "Vague de fin",
     "wave_n": "Vague {{n}}"
+  },
+  "tableauDraw": {
+    "placement": "Placement",
+    "placement_hint": "Strict : tête de série 1 contre la dernière. Par paires, par groupes ou intégral : tirage au sort par le moteur, avec une graine enregistrée et un PV imprimable. Figé une fois le tableau tiré.",
+    "mode": "Mode de tirage",
+    "seed": "Graine",
+    "mode_strict": "Strict (au rang)",
+    "mode_pairs": "Par paires (1-2, 3-4…)",
+    "mode_groups": "Par groupes (3-4, 5-8, 9-16…)",
+    "mode_random": "Intégral",
+    "print": "Imprimer le PV de tirage",
+    "pv_title": "Procès-verbal de tirage du tableau",
+    "pv_competition": "Épreuve",
+    "pv_date": "Date",
+    "pv_size": "Tableau de",
+    "pv_group": "Groupe",
+    "pv_drawn_at": "Tirage effectué le",
+    "pv_printed_at": "Édité le",
+    "pv_rank": "Rang d'entrée",
+    "pv_name": "Nom",
+    "pv_affiliation": "Club / nation",
+    "pv_emplacement": "Emplacement",
+    "pv_note": "Mention",
+    "note_unranked": "non classé · tiré au sort",
+    "note_tie": "départagé par tirage"
   }
 }
