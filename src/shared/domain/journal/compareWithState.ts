@@ -10,10 +10,12 @@ import type {
   CompetitionFacts,
   MatchFact,
   PoolFact,
+  TableauDrawFact,
   TableauFact,
   TeamsFact,
 } from './projectCompetition';
 import { sessionGroupTableaux } from '../ranking/splitGroups';
+import { tableauDrawStateOf, type TableauDrawState } from '../tableau/tableauDraw';
 import { poolWavesOf } from '../pools/waves';
 
 export type DivergenceKind =
@@ -27,6 +29,7 @@ export type DivergenceKind =
   | 'tableau_missing'
   | 'tableau_unexpected'
   | 'tableau_slot'
+  | 'tableau_draw'
   | 'bracket_result'
   | 'bracket_result_unknown'
   | 'waves'
@@ -98,10 +101,16 @@ export interface CompetitionStateView {
   skipPoolPhase?: boolean;
   tableauMatches: TableauMatch[];
   consolationBrackets: ConsolationBracket[];
+  /** Tirage du tableau unique ou du tableau d'équipes (docs/adr/0045) ; absent : non comparé */
+  tableauDraw?: TableauDrawState | null;
   /** Tableaux séparés après les poules : tableau de chaque groupe (docs/adr/0024) */
   groupTableaux?: Record<
     string,
-    { tableauMatches: TableauMatch[]; consolationBrackets: ConsolationBracket[] }
+    {
+      tableauMatches: TableauMatch[];
+      consolationBrackets: ConsolationBracket[];
+      tableauDraw?: TableauDrawState;
+    }
   >;
   /** Vagues du tour courant (clé `waves`) */
   waves?: { launched?: number; ended?: boolean };
@@ -247,7 +256,16 @@ export function compareWithState(
       facts.complete,
       out
     );
+    compareDraw(facts.groupTableaux[group]?.draw, groups[group]?.tableauDraw ?? null, group, out);
   }
+  // Tirage rejoué (docs/adr/0045) : tableau unique, ou tableau d'équipes
+  if (state.tableauDraw !== undefined)
+    compareDraw(
+      facts.tableau?.draw ?? facts.teams?.tableau?.draw,
+      state.tableauDraw,
+      'tableau',
+      out
+    );
   const matchesOf = (t: {
     tableauMatches: TableauMatch[];
     consolationBrackets: ConsolationBracket[];
@@ -443,6 +461,22 @@ function compareTeamCards(
   if (!same(expected, actual)) out.push({ kind: 'team_cards', id: mf.matchId, expected, actual });
 }
 
+/**
+ * Tirage du tableau (docs/adr/0045) comparé à celui du journal : mode, graine et ordre d'entrée
+ * tiré ; un tableau du journal sans tirage (événement antérieur) n'est pas comparé
+ */
+function compareDraw(
+  fact: TableauDrawFact | undefined,
+  state: TableauDrawState | null,
+  id: string,
+  out: Divergence[]
+): void {
+  if (!fact) return;
+  const actual = state ? { mode: state.mode, seed: state.seed, order: state.order } : null;
+  const expected = { mode: fact.mode, seed: fact.seed, order: fact.order };
+  if (!same(expected, actual)) out.push({ kind: 'tableau_draw', id, expected, actual });
+}
+
 /** Placement du tableau (unique ou d'un groupe) comparé au tirage du journal */
 function compareTableau(
   fact: TableauFact | null,
@@ -507,6 +541,10 @@ export function stateView(
     skipPoolPhase: session.skipPoolPhase === true,
     tableauMatches: list<TableauMatch>(session.tableauMatches),
     consolationBrackets: list<ConsolationBracket>(session.consolationBrackets),
+    // Tirage comparé dès que l'état porte un tableau unique ou un tirage (docs/adr/0045)
+    ...('tableauDraw' in session || list(session.tableauMatches).length > 0
+      ? { tableauDraw: tableauDrawStateOf(session.tableauDraw) }
+      : {}),
     groupTableaux: sessionGroupTableaux(session),
     waves: session.waves as CompetitionStateView['waves'],
     rapieres: session.rapieres as CompetitionStateView['rapieres'],

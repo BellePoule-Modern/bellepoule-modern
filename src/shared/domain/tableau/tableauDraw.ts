@@ -209,3 +209,30 @@ export function tableauDrawStateOf(value: unknown): TableauDrawState | null {
     order: v.order.filter((id): id is string => typeof id === 'string'),
   };
 }
+
+/** Tireur rangé au rang d'entrée : classement saisi (absent ou ≤ 0 : non classé), nom */
+export interface EntryRankedFencer {
+  id: string;
+  ranking?: number | null;
+  lastName?: string;
+  firstName?: string;
+}
+
+/**
+ * Classement initial d'une épreuve sans poules (`skipPools`, ADR-0045) : par rang d'entrée, puis
+ * par nom ; non classés à la suite, au nom. Le départage des ex aequo et l'ordre des non classés
+ * reviennent au tirage du tableau (`drawTableau`, `byEntryRank`).
+ */
+export function sortByEntryRank<T extends EntryRankedFencer>(fencers: readonly T[]): T[] {
+  const rank = (f: T) =>
+    typeof f.ranking === 'number' && Number.isFinite(f.ranking) && f.ranking > 0
+      ? f.ranking
+      : Infinity;
+  const name = (f: T) => `${f.lastName ?? ''} ${f.firstName ?? ''}`.trim();
+  return [...fencers].sort((a, b) => {
+    const ra = rank(a);
+    const rb = rank(b);
+    if (ra !== rb) return ra < rb ? -1 : 1;
+    return name(a).localeCompare(name(b), 'fr') || a.id.localeCompare(b.id);
+  });
+}

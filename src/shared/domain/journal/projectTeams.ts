@@ -73,7 +73,20 @@ export function projectTeamEvent(current: TeamsFact | null, event: TeamEvent): T
       break;
     case JOURNAL_EVENT.teamTableauGenerated:
       // Nouveau tableau : il remplace les rencontres du tableau précédent
-      teams.tableau = { size: event.payload.size, slots: event.payload.slots.map(s => ({ ...s })) };
+      teams.tableau = {
+        size: event.payload.size,
+        slots: event.payload.slots.map(s => ({ ...s })),
+        // Tirage (docs/adr/0045) ; absent : événement antérieur
+        ...(event.payload.draw
+          ? {
+              draw: {
+                mode: event.payload.draw.mode,
+                seed: event.payload.draw.seed,
+                order: [...event.payload.draw.order],
+              },
+            }
+          : {}),
+      };
       dropMatches(teams, m => m.pool === null);
       break;
     case JOURNAL_EVENT.teamMatchScheduled: {

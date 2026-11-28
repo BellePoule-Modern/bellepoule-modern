@@ -9,6 +9,7 @@
  */
 import type { TeamRow } from './team.types';
 import { titulars } from './relay';
+import type { TableauDrawEntry } from '../tableau/tableauDraw';
 
 /** Classement d'un tireur (rang national…) ; absent ou ≤ 0 : non classé */
 export type FencerRankingOf = (fencerId: string) => number | null | undefined;
@@ -61,4 +62,22 @@ export function teamEntryRanking<T extends Pick<TeamRow, 'id' | 'name' | 'rankin
 /** Rang d'entrée (dès 1) de chaque équipe, dans l'ordre de `teamEntryRanking` */
 export function teamEntryRanks(teams: readonly Pick<TeamRow, 'id'>[]): Map<string, number> {
   return new Map(teams.map((t, i) => [t.id, i + 1]));
+}
+
+/**
+ * Qualifiés d'un tableau d'équipes à tirer (docs/adr/0045), dans l'ordre donné : rang effectif et
+ * échelle (rang saisi, puis rang calculé) ; null : équipe sans rang. Au tableau sans poule, les
+ * équipes à rang effectif égal et les équipes sans rang sont tirées au sort avec la graine du
+ * tableau, au lieu de suivre le nom (ADR-0044 amendée le 2026-11-28).
+ */
+export function teamDrawEntries(
+  teams: readonly Pick<TeamRow, 'id' | 'ranking' | 'fencers'>[],
+  starters: number,
+  fencerRanking: FencerRankingOf
+): TableauDrawEntry[] {
+  return teams.map(team => {
+    if (ranked(team.ranking)) return { id: team.id, entryRank: team.ranking, tier: 0 };
+    const sum = teamEntryKey(team, starters, fencerRanking);
+    return { id: team.id, entryRank: sum, tier: sum === null ? 2 : 1 };
+  });
 }

@@ -9,6 +9,7 @@
 import { FencerStatus, type Pool, type PoolRanking } from '../../../shared/types';
 import { generateInitialRanking } from '../../../shared/utils/poolCalculations';
 import { allTableauMatches } from '../../../shared/domain/ranking/splitGroups';
+import { sortByEntryRank } from '../../../shared/domain/tableau/tableauDraw';
 import { CommandError, type CommandContext } from './context';
 import { getCompetitionOrThrow } from './competitions';
 import { EVENT, recordEvents } from './eventLog';
@@ -82,7 +83,11 @@ export function adjustRanking(
   return report;
 }
 
-/** Épreuve sans poules : classement initial sur les tireurs pointés, ordre de l'appel seedé */
+/**
+ * Épreuve sans poules : classement initial sur les tireurs pointés (ou choisis par
+ * `fencerIds`), rangés par rang d'entrée puis par nom (docs/adr/0045). Le départage des ex
+ * aequo et l'ordre des non classés reviennent au tirage du tableau, avec sa graine.
+ */
 export function skipPools(
   ctx: CommandContext,
   input: { competitionId: string; fencerIds?: string[]; dryRun?: boolean }
@@ -95,16 +100,15 @@ export function skipPools(
   }
   const all = ctx.db.getFencersByCompetition(comp.id);
   const byId = new Map(all.map(f => [f.id, f]));
-  // Ordre fourni par l'écran (tireurs pointés seedés) ; sinon pointés dans l'ordre du classement
-  const ordered = input.fencerIds
-    ? input.fencerIds.map(id => {
+  // `fencerIds` choisit les tireurs (l'ordre fourni ne compte plus) ; sinon tous les pointés
+  const chosen = input.fencerIds
+    ? [...new Set(input.fencerIds)].map(id => {
         const f = byId.get(id);
         if (!f) throw new CommandError('fencer_not_found', `Tireur introuvable : ${id}`);
         return f;
       })
-    : all
-        .filter(f => f.status === FencerStatus.CHECKED_IN)
-        .sort((a, b) => (a.ranking ?? 9999) - (b.ranking ?? 9999));
+    : all.filter(f => f.status === FencerStatus.CHECKED_IN);
+  const ordered = sortByEntryRank(chosen);
   if (ordered.length < 2) {
     throw new CommandError('not_enough_fencers', 'Moins de 2 tireurs pointés');
   }
@@ -153,6 +157,8 @@ export function clearTableau(
             tableauMatches: [],
             consolationBrackets: [],
             finalResults: [],
+            // Tirage effacé avec le tableau (docs/adr/0045) : un nouveau tirage tire une graine
+            tableauDraw: null,
           })
         : {}),
       ...(legacyMode ? { rapieres } : {}),

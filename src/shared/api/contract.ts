@@ -26,6 +26,8 @@ import {
   FencerCategoryField,
   FencerTeamEntryShape,
   SplitGroup,
+  TableauDrawSeed,
+  TableauDrawSummary,
 } from './contractDef';
 import { reportOperations } from './contractReports';
 import { dtViewOperations } from './contractDtView';
@@ -50,6 +52,7 @@ import type { ConsolationBracket, FinalResult, TableauMatch } from '../domain/ta
 import type { TableauStageRecord } from '../domain/tableau/tableauStage';
 import type { RapieresLegacyState, RapieresSession } from '../domain/rapieres/rapieres.types';
 import type { GroupTableau } from '../domain/ranking/splitGroups';
+import type { TableauDrawState } from '../domain/tableau/tableauDraw';
 
 export type {
   ApiContract,
@@ -217,6 +220,11 @@ const CompetitionStateSchema = z.object({
   splitHistory: SplitHistorySchema.optional(), // Scission faite : filles (docs/adr/0039)
   /** Tableaux séparés après les poules : un tableau par groupe (docs/adr/0024) */
   groupTableaux: z.record(z.string(), z.custom<GroupTableau>()).optional(),
+  /**
+   * Tirage du tableau unique, ou du tableau d'équipes (docs/adr/0045) : mode, graine, heure,
+   * ordre d'entrée tiré ; tableaux séparés : dans le tableau de chaque groupe
+   */
+  tableauDraw: z.custom<TableauDrawState>().optional(),
   /** Épreuve par équipes (docs/adr/0024) : équipes, rencontres, relais ; null : individuelle */
   teams: TeamsStateSchema.nullable().optional(),
   poolPrepParams: z
@@ -429,7 +437,8 @@ export const contract = {
       'Tableau d’élimination directe. Sans « composition » : construit depuis le classement après poules (tireurs éliminés, abandons, forfaits et exclus écartés), avec ou sans petite finale (épreuve individuelle, tableau simple), ou « tirer toutes les places » (barrages, petite finale imposée, tableaux de classement créés au fil des scores, même planification que l’écran) : après plusieurs tours de poules, classement de tous les tours (docs/adr/0042) ; refus « no_direct_elimination » une fois le tableau arrêté clos, les tours de poules qui suivent terminent l’épreuve (docs/adr/0037). ' +
       'Avec « composition » : placement calculé par l’écran (barrages, exemptions, rangs de sortie de poules), tel quel. « replace: true » efface un tableau déjà joué : accord du DT indispensable. ' +
       'Tableaux séparés après les poules : un tableau par groupe (« group » exigé), identifiants de match préfixés par le groupe (« F:32-0 »). ' +
-      'Sans « composition » : « tiedAtBar » liste les ex aequo à la barre de qualification au-delà du quota, « ties » choisit leur sort pour ce tableau (docs/adr/0040).',
+      'Sans « composition » : « tiedAtBar » liste les ex aequo à la barre de qualification au-delà du quota, « ties » choisit leur sort pour ce tableau (docs/adr/0040). ' +
+      'Tirage (docs/adr/0045) : mode de la phase tableau de la formule (« draw » : strict, pairs, groups, random ; strict sans formule) ; tableau au rang d’entrée (sans poule) : ex aequo et non classés tirés au sort, quel que soit le mode. Le moteur tire la graine (0 à 2³² − 1) sauf « seed » ; « draw » rend { mode, seed }, aperçu compris : rejouer avec la graine de l’aperçu donne le même tableau. « composition » refusée (invalid_composition) pour un mode autre que strict ou un tableau au rang d’entrée. Le rang d’entrée (seedA, seedB) reste celui du classement.',
     input: z.object({
       competitionId: CompetitionId,
       thirdPlaceMatch: z.boolean().optional().describe('Match pour la 3e place'),
@@ -453,6 +462,7 @@ export const contract = {
       group: SplitGroup,
       replace: z.boolean().optional().describe('Remplacer un tableau existant'),
       ties: TiesAtBarInput,
+      seed: TableauDrawSeed,
       dryRun: DryRun,
       expectedRevision: ExpectedRevision,
       commandId: CommandId,
@@ -463,6 +473,7 @@ export const contract = {
       qualified: z.number().int(),
       tiedAtBar: TiedAtBarSchema.nullable(),
       thirdPlaceMatch: z.boolean(),
+      draw: TableauDrawSummary,
       firstRound: z.array(
         z.object({
           id: z.string(),
@@ -574,10 +585,15 @@ export const contract = {
 
   skipPools: command({
     description:
-      'Épreuve sans poules : classement initial sur les tireurs pointés (ordre fourni, sinon classement d’entrée), puis tableau.',
+      'Épreuve sans poules : classement initial sur les tireurs pointés (« fencerIds » : tireurs choisis, sinon tous les pointés), rangés par classement d’entrée puis par nom ; les ex aequo et les non classés sont tirés au sort au tirage du tableau (docs/adr/0045), puis tableau.',
     input: z.object({
       competitionId: CompetitionId,
-      fencerIds: z.array(Id).min(2).max(2000).optional().describe('Ordre du classement initial'),
+      fencerIds: z
+        .array(Id)
+        .min(2)
+        .max(2000)
+        .optional()
+        .describe('Tireurs du classement initial (l’ordre ne compte pas)'),
       dryRun: DryRun,
       expectedRevision: ExpectedRevision,
       commandId: CommandId,

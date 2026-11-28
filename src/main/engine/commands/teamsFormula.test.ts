@@ -1524,3 +1524,94 @@ d('Formule d’une épreuve par équipes commencée : verrou S6 (docs/adr/0041, 
     });
   });
 });
+
+d('Tirage du tableau d’équipes (docs/adr/0045 ; ADR-0044 amendée le 2026-11-28)', () => {
+  /** Rejeu avec l'état de session réel (tirage compris) */
+  const divergencesWithDraw = (competitionId: string) => {
+    const comp = db.getCompetition(competitionId)!;
+    const session = (db.getSessionState(competitionId) ?? {}) as Record<string, unknown>;
+    return compareWithState(
+      projectCompetition(events(competitionId)),
+      { ...stateView(session, comp.settings), teams: teamStateView(ctx, comp) },
+      {}
+    );
+  };
+
+  it('tableau sans poule par paires : graine, emplacements par paire, ordre d’entrée gardé, journal et état', async () => {
+    const comp = competition(Weapon.SABRE, {
+      formula: teamFormula({ pool: null, tableau: { draw: 'pairs' } }),
+    });
+    const ids = await teamsRegistered(
+      comp.id,
+      ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map((name, i) => ({ name, ranking: i + 1 }))
+    );
+    const preview = await call('generateTeamTableau', { competitionId: comp.id, dryRun: true });
+    expect(preview.draw.mode).toBe('pairs');
+    const out = await call('generateTeamTableau', {
+      competitionId: comp.id,
+      seed: preview.draw.seed,
+    });
+    // Aperçu rejoué avec sa graine : même tableau
+    expect(out.slots).toEqual(preview.slots);
+    expect(out.draw).toEqual(preview.draw);
+    const state = await stateOf(comp.id);
+    // Têtes de série = ordre d'entrée (rangs 1 à 8), placement = emplacements tirés
+    expect(state.teams.tableauSeeds).toEqual(ids);
+    const placement: string[] = state.teams.tableauPlacement;
+    placement.forEach((id, k) => expect(Math.floor(k / 2)).toBe(Math.floor(ids.indexOf(id) / 2)));
+    expect(state.tableauDraw).toMatchObject({ mode: 'pairs', seed: out.draw.seed, order: ids });
+    const ev = events(comp.id).find(e => e.type === 'TeamTableauGenerated') as any;
+    expect(ev.payload.draw).toEqual({ mode: 'pairs', seed: out.draw.seed, order: ids });
+    expect(divergencesWithDraw(comp.id)).toEqual([]);
+  });
+
+  it('sans poule : rang effectif égal et sans rang tirés au sort avec la graine, pas au nom', async () => {
+    const comp = competition(Weapon.SABRE, { formula: teamFormula({ pool: null }) });
+    const [a, b, c, dd, e] = await teamsRegistered(comp.id, [
+      { name: 'Alpha', ranking: 1 },
+      { name: 'Bravo', ranking: 2 },
+      { name: 'Charlie', ranking: 2 },
+      { name: 'Delta' },
+      { name: 'Echo' },
+    ]);
+    const orders = new Set<string>();
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+      await call('generateTeamTableau', { competitionId: comp.id, seed, replace: true });
+      const order: string[] = (await stateOf(comp.id)).tableauDraw.order;
+      expect(order[0]).toBe(a);
+      expect(new Set(order.slice(1, 3))).toEqual(new Set([b, c]));
+      expect(new Set(order.slice(3))).toEqual(new Set([dd, e]));
+      expect((await stateOf(comp.id)).teams.tableauSeeds).toEqual(order);
+      orders.add(order.join());
+    }
+    expect(orders.size).toBeGreaterThan(1);
+  });
+
+  it('après des poules, strict : placement au classement de poule, inchangé', async () => {
+    const comp = competition(Weapon.EPEE, { formula: teamFormula() });
+    await teamsRegistered(comp.id, ['A', 'B', 'C', 'D']);
+    await call('generateTeamPools', { competitionId: comp.id });
+    for (const m of db.getTeamMatchesByCompetition(comp.id)) await playMatch(comp.id, m.id);
+    const ranking = (await stateOf(comp.id)).teams.poolRanking as Array<{ teamId: string }>;
+    const out = await call('generateTeamTableau', { competitionId: comp.id });
+    expect(out.draw.mode).toBe('strict');
+    expect(out.slots[0]).toMatchObject({
+      teamAId: ranking[0].teamId,
+      teamBId: ranking[3].teamId,
+    });
+    expect(divergencesWithDraw(comp.id)).toEqual([]);
+  });
+
+  it('S6 : draw du tableau d’équipes verrouillé une fois tiré', async () => {
+    const comp = competition(Weapon.SABRE, { formula: teamFormula({ pool: null }) });
+    await teamsRegistered(comp.id, ['A', 'B', 'C', 'D']);
+    const set = (draw: string) =>
+      call('updateCompetitionFormula', {
+        competitionId: comp.id,
+        operations: [{ op: 'setPhase', phase: 'tableau', settings: { draw } }],
+      });
+    await set('random');
+    await call('generateTeamTableau', { competitionId: comp.id });
+    await expect(set('pairs')).rejects.toMatchObject({ code: 'invalid_settings' });
+  });
+});

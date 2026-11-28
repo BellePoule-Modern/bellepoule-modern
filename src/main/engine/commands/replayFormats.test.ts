@@ -51,9 +51,16 @@ function divergences(competitionId: string) {
   return { complete: facts.complete, divergences: compareWithState(facts, state, statuses) };
 }
 
-/** L'écran n'écrit plus rien : l'état d'une épreuve par équipes reste vide de bloc de session */
-const noScreenSession = (competitionId: string) =>
-  expect(db.getSessionState(competitionId)).toBeNull();
+/**
+ * L'écran n'écrit plus rien : le bloc de session d'une épreuve par équipes ne porte que le
+ * tirage du tableau, écrit par le moteur (docs/adr/0045)
+ */
+const noScreenSession = (competitionId: string) => {
+  const session = db.getSessionState(competitionId) as Record<string, unknown> | null;
+  expect(session === null ? [] : Object.keys(session)).toEqual(
+    session === null ? [] : ['tableauDraw']
+  );
+};
 
 // ─── Épreuves individuelles ─────────────────────────────────────────────────
 
