@@ -1,10 +1,10 @@
+// @vitest-environment jsdom
 /**
  * PV de tirage du tableau (docs/adr/0045) : épreuve, tableau et groupe, heure du tirage, mode et
  * graine, une ligne par qualifié (rang d'entrée, nom, club, emplacement, mention) ; heure
  * d'édition injectée ; document HTML échappé.
  */
 import { describe, expect, it } from 'vitest';
-import { JSDOM } from 'jsdom';
 import { tableauDrawReport } from './tableauDrawReport';
 import { generateTableauDrawReportHTML } from '../../utils/pdfExport/tableauDrawPdf';
 
@@ -78,7 +78,7 @@ describe('tableauDrawReport (domaine, heure injectée)', () => {
       tie: 'départagé par tirage',
       formatDateTime: iso => iso,
     });
-    const doc = new JSDOM(html).window.document;
+    const doc = new DOMParser().parseFromString(html, 'text/html');
     expect(doc.body.textContent).toContain('Coupe <test>');
     expect(doc.querySelector('script')).toBeNull();
     expect(doc.body.textContent).toContain('Par paires');

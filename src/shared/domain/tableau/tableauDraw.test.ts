@@ -10,6 +10,7 @@ import {
   mulberry32,
   tableauDrawModeOf,
   tableauDrawNotes,
+  sortByEntryRank,
   tableauDrawStateOf,
   type TableauDrawEntry,
 } from './tableauDraw';
@@ -296,3 +297,16 @@ const GROUPS_16 = [
 ];
 const RANDOM_8 = ['f6', 'f5', 'f7', 'f4', 'f1', 'f3', 'f2', 'f8'];
 const ENTRY_ORDER = ['a', 'c', 'b', 'd', 'e', 'u3', 'u1', 'u2'];
+
+describe('sortByEntryRank (skipPools, écran et moteur)', () => {
+  it('par rang d’entrée, puis par nom ; non classés à la suite, au nom', () => {
+    const out = sortByEntryRank([
+      { id: '1', lastName: 'Zola', ranking: 3 },
+      { id: '2', lastName: 'Abel' },
+      { id: '3', lastName: 'Martin', ranking: 3 },
+      { id: '4', lastName: 'Durand', ranking: 1 },
+      { id: '5', lastName: 'Bernard', ranking: 0 },
+    ]);
+    expect(out.map(f => f.lastName)).toEqual(['Durand', 'Martin', 'Zola', 'Abel', 'Bernard']);
+  });
+});

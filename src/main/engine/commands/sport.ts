@@ -43,7 +43,6 @@ import {
 import { getDefaultMaxScores } from '../../../shared/utils/defaultMaxScores';
 import {
   planTableau,
-  tableauEmplacements,
   calculateFinalResults,
   isTableauDone,
   placeBarrageWinners,
@@ -95,9 +94,8 @@ import {
   poolBoutOrderOfRound,
   poolDistributionOfRound,
   tableauQualificationOf,
-  tableauDrawOf,
 } from '../../../shared/domain/formula/formulaV2';
-import { randomInt } from 'crypto';
+import { entryOrderOfComposition, tableauDrawSetup, validEntryRank } from './tableauDrawSetup';
 import type { TableauDrawMode, TableauDrawState } from '../../../shared/domain/tableau/tableauDraw';
 import { legacyRapieresRead } from '../../../shared/domain/formula/rapieresFormula';
 import { stoppedTableauOf } from '../../../shared/domain/formula/formulaSteps';
@@ -987,26 +985,6 @@ export function assertTableauGroup(
   return group;
 }
 
-/** Rang d'entrée d'un tireur (classement saisi) ; absent ou ≤ 0 : non classé */
-const validEntryRank = (n: number | null | undefined): number | null =>
-  typeof n === 'number' && Number.isFinite(n) && n > 0 ? n : null;
-
-/**
- * Ordre d'entrée d'un placement de l'écran (strict après des poules) : tireurs du premier tour
- * et des barrages, par rang d'entrée (`seedA`, `seedB`), puis par emplacement
- */
-function entryOrderOfComposition(matches: TableauMatch[], size: number): string[] {
-  const seen = new Map<string, number>();
-  for (const m of matches.filter(x => x.round === size || x.round === size * 2)) {
-    if (m.fencerA && !seen.has(m.fencerA.id)) seen.set(m.fencerA.id, m.seedA ?? Infinity);
-    if (m.fencerB && !seen.has(m.fencerB.id)) seen.set(m.fencerB.id, m.seedB ?? Infinity);
-  }
-  const at = tableauEmplacements(matches);
-  return [...seen.entries()]
-    .sort((a, b) => a[1] - b[1] || (at[a[0]] ?? 0) - (at[b[0]] ?? 0))
-    .map(([id]) => id);
-}
-
 /**
  * Tableau d'élimination directe depuis le classement après poules (tireurs éliminés,
  * abandons, forfaits et exclus écartés), avec ou sans petite finale. Tableaux séparés :
@@ -1046,19 +1024,8 @@ export function buildBracket(
   }
   if (options.composition) assertScoreSupported(comp);
   else assertSupported(comp);
-  // Tirage (docs/adr/0045) : mode de la formule ; tableau au rang d'entrée (sans poule)
-  const mode = tableauDrawOf(comp.settings);
-  const byEntryRank = session.skipPoolPhase === true;
-  // Le moteur tire, l'écran ne place plus : mode autre que strict, ou tableau au rang d'entrée
-  if (options.composition && (mode !== 'strict' || byEntryRank)) {
-    throw new CommandError(
-      'invalid_composition',
-      mode !== 'strict'
-        ? `Tableau tiré au sort (mode ${mode}) : placement par le moteur, sans « composition »`
-        : 'Tableau au rang d’entrée : ex aequo et non classés tirés par le moteur, sans « composition »'
-    );
-  }
-  const seed = options.seed ?? randomInt(0, 2 ** 32);
+  // Tirage (docs/adr/0045) : mode, tableau au rang d'entrée, graine ; composition refusée
+  const { mode, byEntryRank, seed } = tableauDrawSetup(comp, session, options);
   const group = assertTableauGroup(comp, session, options.group);
   const eff = effectiveSettings(comp);
   if (!eff.hasDirectElimination) {
