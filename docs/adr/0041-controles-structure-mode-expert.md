@@ -1,6 +1,6 @@
 # ADR-0041 — Contrôles de structure de la formule (S1 à S6) en direct, mode expert de l'éditeur
 
-- **Statut** : Acceptée (validée par le mainteneur le 2026-11-26) ; amendée le 2026-11-27 (S6 : qualification menant à une phase commencée verrouillée, validé par le mainteneur) ; amendée le 2026-11-27 (S6 : qualification sortant d'un tour de poules clos verrouillée, validé par le mainteneur) ; amendée le 2026-11-27 (S6 : mode d'un tableau tiré verrouillé, verrou aussi par les réglages plats, validé par le mainteneur) ; amendée le 2026-11-28 (S6 : avancement d'une épreuve par équipes lu dans les rencontres d'équipe, validé par le mainteneur)
+- **Statut** : Acceptée (validée par le mainteneur le 2026-11-26) ; amendée le 2026-11-27 (S6 : qualification menant à une phase commencée verrouillée, validé par le mainteneur) ; amendée le 2026-11-27 (S6 : qualification sortant d'un tour de poules clos verrouillée, validé par le mainteneur) ; amendée le 2026-11-27 (S6 : mode d'un tableau tiré verrouillé, verrou aussi par les réglages plats, validé par le mainteneur) ; amendée le 2026-11-28 (S6 : avancement d'une épreuve par équipes lu dans les rencontres d'équipe, validé par le mainteneur) ; amendée le 2026-11-28 (S6 : mode de tirage d'un tableau tiré verrouillé, ADR-0045 ; validé par le mainteneur)
 - **Date** : 2026-11-26
 - **Tickets** : #2013 (étape F, lot F2 ; questions Q17, S1 à S6), #1948 ; précise [ADR-0036](0036-formule-v2-arbre-par-phase.md) (grammaire de la frise), [ADR-0032](0032-formule-interface-unique-apercu.md) (éditeur unique, aperçu), [ADR-0012](0012-formule-domaine.md) (validation)
 
@@ -48,7 +48,7 @@
     une phase commencée ne se retire pas, ne
     change pas de nature, et rien ne s'insère avant elle ; la règle de qualification qui sort
     d'un tour de poules clos (`closePoolRound`), ou qui mène à une phase commencée, ne change
-    plus ; le mode d'un tableau tiré (petite finale, « toutes les places ») non plus. Ses autres
+    plus ; le mode d'un tableau tiré (petite finale, « toutes les places », mode de tirage, [ADR-0045](0045-tirage-du-tableau.md)) non plus. Ses autres
     réglages restent soumis aux règles actuelles (Q15), par la formule comme par les réglages
     plats (`updateCompetitionSettings`). _(Amendé le 2026-11-27 :
     remplace « Ses réglages restent soumis aux règles actuelles (Q15). » ; le classement final
@@ -58,7 +58,8 @@
     concerné. Amendé une troisième fois le 2026-11-27 : remplace « ne change plus. Ses autres réglages
     restent soumis aux règles actuelles (Q15). » ; le mode d'un tableau tiré suit l'ADR-0043 (F4b :
     modifiable tant que le tableau n'est pas tiré, pour toutes les épreuves), et les réglages
-    plats ne contournent pas le verrou.)_
+    plats ne contournent pas le verrou. Amendé le 2026-11-28 : remplace « (petite finale, « toutes les
+    places ») » ; le mode de tirage de l'ADR-0045 est un mode du tableau.)_
 - **Avertissements**, non bloquants, rendus par la simulation (`simulateFormula`) et affichés
   dans l'aperçu : plus de la moitié d'exempts au premier tour du tableau, poules de moins de 4,
   moins de 4 qualifiés, plus de 3 tours de poules.

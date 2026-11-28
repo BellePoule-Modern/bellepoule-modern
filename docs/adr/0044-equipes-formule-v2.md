@@ -1,6 +1,6 @@
 # ADR-0044 — Les épreuves par équipes (relais FIE) suivent la formule v2 : règle de rencontre par phase, poules d'équipes, rang d'entrée (migration 55)
 
-- **Statut** : Acceptée (validée par le mainteneur le 2026-11-27) ; amendée le 2026-11-27 (formule d'équipe reconnue par `general.teamMatch`, rangs saisis devant les rangs calculés, classement de poules au ratio V/M, remplaçant choisi ; validé par le mainteneur) ; amendée le 2026-11-27 (ordre FIE imposé à 3 titulaires en épée, fleuret et sabre, o.99.3 ; validé par le mainteneur) ; amendée le 2026-11-27 (réglage plat de structure refusé pour une formule d'équipe ; validé par le mainteneur)
+- **Statut** : Acceptée (validée par le mainteneur le 2026-11-27) ; amendée le 2026-11-27 (formule d'équipe reconnue par `general.teamMatch`, rangs saisis devant les rangs calculés, classement de poules au ratio V/M, remplaçant choisi ; validé par le mainteneur) ; amendée le 2026-11-27 (ordre FIE imposé à 3 titulaires en épée, fleuret et sabre, o.99.3 ; validé par le mainteneur) ; amendée le 2026-11-27 (réglage plat de structure refusé pour une formule d'équipe ; validé par le mainteneur) ; amendée le 2026-11-28 (tableau sans poule : rang égal et sans rang tirés au sort, ADR-0045 ; validé par le mainteneur) ; amendée le 2026-11-28 (commandes et rejeu : `seed` et `draw` du tirage, ADR-0045 ; validé par le mainteneur)
 - **Date** : 2026-11-27
 - **Tickets** : #1948 (lot 0, étape G0), #1043 ; précise [ADR-0036](0036-formule-v2-arbre-par-phase.md) (phases), [ADR-0024](0024-tableaux-separes-equipes-moteur.md) (équipes par le moteur), [ADR-0040](0040-ex-aequo-a-la-barre.md) (coupe), [ADR-0041](0041-controles-structure-mode-expert.md) (contrôles) ; s'appuie sur [ADR-0007](0007-format-evenement.md), [ADR-0008](0008-nommage-contrat.md), [ADR-0011](0011-migrations-schema-3-0.md), [ADR-0028](0028-cartons-equipe-moteur.md)
 
@@ -122,8 +122,12 @@
   formule. « Toutes les places » en équipes relève du lot 2 (G2) : refusé en G0
   (`team_brick_unsupported`).
 - **Commandes** : `generateTeamPools` et `generateTeamTableau` lisent la formule par
-  `phaseSettings`. Elles gardent leur nom, leur contrat et leurs événements
-  (`TeamPoolsGenerated`, `TeamMatchScheduled`, `TeamTableauGenerated`). Leur charge porte déjà
+  `phaseSettings`. Elles gardent leur nom et leurs événements
+  (`TeamPoolsGenerated`, `TeamMatchScheduled`, `TeamTableauGenerated`) ; `generateTeamTableau`
+  reçoit en plus `seed` et rend `draw`, et `TeamTableauGenerated` porte le champ facultatif
+  `draw` ([ADR-0045](0045-tirage-du-tableau.md)). _(Amendé le 2026-11-28 : remplace « Elles
+  gardent leur nom, leur contrat et leurs événements (`TeamPoolsGenerated`,
+  `TeamMatchScheduled`, `TeamTableauGenerated`). ».)_ Leur charge porte déjà
   les identifiants de rencontre et d'équipe (ADR-0007) : la répartition est rejouée depuis
   l'événement, jamais recalculée. Un nouveau champ facultatif `poolCount` s'ajoute à
   `generateTeamPools`, comme pour `generatePools`.
@@ -148,7 +152,11 @@
   rang ; puis les équipes sans rang, au nom. Les deux échelles ne se mélangent pas. _(Amendé le
   2026-11-27 : remplace « Les équipes classées passent devant les autres. ».)_ Le rang effectif
   sert au serpentin, au
-  placement du tableau sans poule, et au carton noir P (au lieu du nom).
+  placement du tableau sans poule, et au carton noir P (au lieu du nom). Pour le placement du
+  tableau sans poule, les équipes à rang effectif égal et les équipes sans rang ne suivent pas le
+  nom : elles sont tirées au sort avec la graine du tableau ([ADR-0045](0045-tirage-du-tableau.md)).
+  _(Amendé le 2026-11-28 : ajoute cette phrase ; l'ordre au nom reste celui de l'affichage, du
+  serpentin et du carton noir P.)_
 
 **Contrôles et classement final**
 
@@ -172,7 +180,9 @@
   - éditeur : règle de rencontre, briques admises ;
   - écran des équipes : phases générées, saisie du rang ;
   - MCP : `update_team`, `poolCount` ; `npm run docs:mcp`.
-- Rejeu : les événements d'équipe ne changent pas de forme. Les épreuves existantes, sans
+- Rejeu : les événements d'équipe ne changent pas de forme, sauf le champ facultatif `draw` de
+  `TeamTableauGenerated` (ADR-0045) ; les événements antérieurs, sans ce champ, restent lisibles.
+  _(Amendé le 2026-11-28 : remplace « Rejeu : les événements d'équipe ne changent pas de forme. ».)_ Les épreuves existantes, sans
   formule ou avec une formule « individuelle » enregistrée, sont relues avec la règle de leurs
   réglages et une poule unique. Un test sur une épreuve réelle le prouve.
 - Restent hors G0 :
