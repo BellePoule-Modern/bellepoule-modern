@@ -190,6 +190,13 @@ export function drawTableau(
   };
 }
 
+/**
+ * Le moteur tire le tableau, l'écran n'envoie plus de placement (docs/adr/0045) : mode autre
+ * que strict, ou tableau au rang d'entrée (sans poule). Règle unique de l'écran et du moteur.
+ */
+export const engineDrawRequired = (mode: TableauDrawMode, byEntryRank: boolean): boolean =>
+  mode !== 'strict' || byEntryRank;
+
 /** Mode de tirage lu (formule, journal, état) : valeur inconnue ou absente → strict */
 export function tableauDrawModeOf(value: unknown): TableauDrawMode {
   return TABLEAU_DRAW_MODES.includes(value as TableauDrawMode)

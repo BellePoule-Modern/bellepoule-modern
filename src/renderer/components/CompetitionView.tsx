@@ -4,6 +4,7 @@
  */
 
 import { entrySeeds, resultsTableauMatches } from '../../shared/domain/tableau/tableauStage';
+import { engineDrawRequired } from '../../shared/domain/tableau/tableauDraw';
 import { formulaSegment } from '../../shared/domain/formula/formulaSteps';
 import { resultsRanking } from '../../shared/domain/ranking/resultsRanking';
 import {
@@ -776,7 +777,7 @@ const CompetitionView: React.FC<CompetitionViewProps> = (props: CompetitionViewP
             stageThenSplit={!!storedFormula && !!pendingSplitOf(storedFormula)}
             closedStage={!!closedStage}
             // Tirage par le moteur (docs/adr/0045) : mode de la formule, ou tableau sans poule
-            engineDraw={tableauDrawOf(competition.settings) !== 'strict' || skipPoolPhase}
+            engineDraw={engineDrawRequired(tableauDrawOf(competition.settings), skipPoolPhase)}
             byEntryRank={skipPoolPhase}
             competitionInfo={{
               title: competition.title,

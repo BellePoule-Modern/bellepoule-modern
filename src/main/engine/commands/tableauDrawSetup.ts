@@ -9,7 +9,10 @@ import { randomInt } from 'crypto';
 import type { Competition } from '../../../shared/types';
 import { tableauDrawOf } from '../../../shared/domain/formula/formulaV2';
 import { tableauEmplacements } from '../../../shared/domain/tableau/tableauCalculations';
-import type { TableauDrawMode } from '../../../shared/domain/tableau/tableauDraw';
+import {
+  engineDrawRequired,
+  type TableauDrawMode,
+} from '../../../shared/domain/tableau/tableauDraw';
 import type { TableauMatch } from '../../../shared/domain/tableau/tableauTypes';
 import { CommandError } from './context';
 
@@ -25,7 +28,7 @@ export function tableauDrawSetup(
 ): { mode: TableauDrawMode; byEntryRank: boolean; seed: number } {
   const mode = tableauDrawOf(comp.settings);
   const byEntryRank = session.skipPoolPhase === true;
-  if (options.composition && (mode !== 'strict' || byEntryRank)) {
+  if (options.composition && engineDrawRequired(mode, byEntryRank)) {
     throw new CommandError(
       'invalid_composition',
       mode !== 'strict'

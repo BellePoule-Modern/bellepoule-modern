@@ -4,6 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
+  engineDrawRequired,
   drawBlocks,
   drawTableau,
   isTableauDrawSeed,
@@ -308,5 +309,20 @@ describe('sortByEntryRank (skipPools, écran et moteur)', () => {
       { id: '5', lastName: 'Bernard', ranking: 0 },
     ]);
     expect(out.map(f => f.lastName)).toEqual(['Durand', 'Martin', 'Zola', 'Abel', 'Bernard']);
+  });
+});
+
+describe('engineDrawRequired (ADR-0045 : le moteur tire, l’écran ne place plus)', () => {
+  it('mode autre que strict : le moteur tire, avec ou sans poules', () => {
+    for (const mode of ['pairs', 'groups', 'random'] as const) {
+      expect(engineDrawRequired(mode, false)).toBe(true);
+      expect(engineDrawRequired(mode, true)).toBe(true);
+    }
+  });
+  it('tableau au rang d’entrée (sans poule) : le moteur tire, strict compris', () => {
+    expect(engineDrawRequired('strict', true)).toBe(true);
+  });
+  it('strict après des poules : l’écran garde son placement', () => {
+    expect(engineDrawRequired('strict', false)).toBe(false);
   });
 });
