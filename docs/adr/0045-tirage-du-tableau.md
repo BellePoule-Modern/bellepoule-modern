@@ -1,6 +1,6 @@
 # ADR-0045 — Le tableau se tire selon un mode réglé dans la formule (strict, par paires, par groupes, intégral), avec une graine enregistrée et un PV de tirage
 
-- **Statut** : Proposée
+- **Statut** : Acceptée (validée par le mainteneur le 2026-11-28)
 - **Date** : 2026-11-28
 - **Tickets** : #1948 (lot 1, étape G1 ; séparation : #2362 ; formule E1, mode « tableau sans poule ») ; précise [ADR-0036](0036-formule-v2-arbre-par-phase.md) (phase tableau), [ADR-0037](0037-deroule-genere-par-la-formule.md) (D1 : 0 tour, « les modes de tirage relèvent de #1948, lot 1 »), [ADR-0044](0044-equipes-formule-v2.md) (tableau d'équipes au rang d'entrée ; amendée le 2026-11-28 : rang égal et sans rang tirés au sort), [ADR-0041](0041-controles-structure-mode-expert.md) (S6, amendée le 2026-11-28) ; s'appuie sur [ADR-0002](0002-couches-et-dependances.md), [ADR-0007](0007-format-evenement.md), [ADR-0008](0008-nommage-contrat.md), [ADR-0017](0017-projections-etat-epreuve.md), [ADR-0021](0021-services-plateforme.md)
 
